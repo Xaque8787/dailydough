@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Internal Management System{% endblock %}</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <h1 class="logo">Management System</h1>
+            {% if current_user %}
+            <ul class="nav-links">
+                <li><a href="/">Home</a></li>
+                <li><a href="/daily-balance">Daily Balance</a></li>
+                <li><a href="/employees">Employees</a></li>
+                {% if current_user.is_admin %}
+                <li><a href="/admin">Administration</a></li>
+                {% endif %}
+                <li><a href="/logout" class="logout-btn">Logout ({{ current_user.username }})</a></li>
+            </ul>
+            {% endif %}
+        </div>
+    </nav>
+
+    <main class="container">
+        {% block content %}{% endblock %}
+    </main>
+
+    <script src="/static/js/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,168 @@
+{% extends "base.html" %}
+
+{% block title %}Daily Balance - {{ target_date }} - Management System{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h2>Daily Balance</h2>
+    <form method="GET" action="/daily-balance" style="display: inline-block;">
+        <input type="date" name="selected_date" value="{{ target_date }}" onchange="this.form.submit()">
+    </form>
+</div>
+
+<div class="daily-info">
+    <h3>{{ target_date }} - {{ day_of_week }}</h3>
+    {% if daily_balance and daily_balance.finalized %}
+    <span class="badge badge-success">Finalized</span>
+    {% endif %}
+</div>
+
+<form method="POST" action="{% if daily_balance and daily_balance.finalized %}/daily-balance/save{% else %}/daily-balance/save{% endif %}" id="dailyBalanceForm">
+    <input type="hidden" name="target_date" value="{{ target_date }}">
+
+    <div class="form-section">
+        <h3>Daily Financial Summary</h3>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label for="total_cash_sales">Total Cash Sales</label>
+                <input type="number" step="0.01" id="total_cash_sales" name="total_cash_sales"
+                       value="{% if daily_balance %}{{ daily_balance.total_cash_sales }}{% else %}0.00{% endif %}"
+                       {% if daily_balance and daily_balance.finalized %}readonly{% endif %}>
+            </div>
+
+            <div class="form-group">
+                <label for="total_card_sales">Total Card Sales</label>
+                <input type="number" step="0.01" id="total_card_sales" name="total_card_sales"
+                       value="{% if daily_balance %}{{ daily_balance.total_card_sales }}{% else %}0.00{% endif %}"
+                       {% if daily_balance and daily_balance.finalized %}readonly{% endif %}>
+            </div>
+
+            <div class="form-group">
+                <label for="total_tips_collected">Total Tips Collected</label>
+                <input type="number" step="0.01" id="total_tips_collected" name="total_tips_collected"
+                       value="{% if daily_balance %}{{ daily_balance.total_tips_collected }}{% else %}0.00{% endif %}"
+                       {% if daily_balance and daily_balance.finalized %}readonly{% endif %}>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="notes">Notes</label>
+            <textarea id="notes" name="notes" rows="3"
+                      {% if daily_balance and daily_balance.finalized %}readonly{% endif %}>{% if daily_balance %}{{ daily_balance.notes }}{% endif %}</textarea>
+        </div>
+    </div>
+
+    <div class="form-section">
+        <h3>Employee Entries</h3>
+
+        {% if not (daily_balance and daily_balance.finalized) %}
+        <div class="employee-selector">
+            <label>Select Working Employees:</label>
+            <div class="checkbox-group">
+                {% for emp in all_employees %}
+                <label class="checkbox-label">
+                    <input type="checkbox" name="employee_ids" value="{{ emp.id }}"
+                           class="employee-toggle"
+                           data-employee-id="{{ emp.id }}"
+                           {% if emp in working_employees %}checked{% endif %}>
+                    {{ emp.name }} ({{ emp.position }})
+                </label>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <div id="employee-entries">
+            {% for emp in working_employees %}
+            <div class="employee-entry" id="entry-{{ emp.id }}" data-employee-id="{{ emp.id }}">
+                <h4>{{ emp.name }} - {{ emp.position }}</h4>
+
+                <div class="form-row">
+                    {% if emp.requires_bank_card_sales %}
+                    <div class="form-group">
+                        <label>Bank Card Sales</label>
+                        <input type="number" step="0.01" name="bank_card_sales_{{ emp.id }}"
+                               value="{% if employee_entries.get(emp.id) %}{{ employee_entries.get(emp.id).bank_card_sales }}{% else %}0.00{% endif %}"
+                               {% if daily_balance and daily_balance.finalized %}readonly{% endif %}>
+                    </div>
+                    {% endif %}
+
+                    <div class="form-group">
+                        <label>Bank Card Tips</label>
+                        <input type="number" step="0.01" name="bank_card_tips_{{ emp.id }}"
+                               value="{% if employee_entries.get(emp.id) %}{{ employee_entries.get(emp.id).bank_card_tips }}{% else %}0.00{% endif %}"
+                               {% if daily_balance and daily_balance.finalized %}readonly{% endif %}>
+                    </div>
+
+                    {% if emp.requires_cash_tips %}
+                    <div class="form-group">
+                        <label>Cash Tips</label>
+                        <input type="number" step="0.01" name="cash_tips_{{ emp.id }}"
+                               value="{% if employee_entries.get(emp.id) %}{{ employee_entries.get(emp.id).cash_tips }}{% else %}0.00{% endif %}"
+                               {% if daily_balance and daily_balance.finalized %}readonly{% endif %}>
+                    </div>
+                    {% endif %}
+
+                    {% if emp.requires_total_sales %}
+                    <div class="form-group">
+                        <label>Total Sales</label>
+                        <input type="number" step="0.01" name="total_sales_{{ emp.id }}"
+                               value="{% if employee_entries.get(emp.id) %}{{ employee_entries.get(emp.id).total_sales }}{% else %}0.00{% endif %}"
+                               {% if daily_balance and daily_balance.finalized %}readonly{% endif %}>
+                    </div>
+                    {% endif %}
+
+                    <div class="form-group">
+                        <label>Adjustments</label>
+                        <input type="number" step="0.01" name="adjustments_{{ emp.id }}"
+                               value="{% if employee_entries.get(emp.id) %}{{ employee_entries.get(emp.id).adjustments }}{% else %}0.00{% endif %}"
+                               {% if daily_balance and daily_balance.finalized %}readonly{% endif %}>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Take-Home Tips</label>
+                        <input type="number" step="0.01" readonly
+                               value="{% if employee_entries.get(emp.id) %}{{ employee_entries.get(emp.id).calculated_take_home }}{% else %}0.00{% endif %}"
+                               class="calculated-field">
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    {% if not (daily_balance and daily_balance.finalized) %}
+    <div class="form-actions">
+        <button type="submit" class="btn btn-secondary" formaction="/daily-balance/save">Save Draft</button>
+        <button type="submit" class="btn btn-primary" formaction="/daily-balance/finalize"
+                onclick="return confirm('Are you sure you want to finalize this daily balance? A CSV report will be generated.')">
+            Generate Report (Finalize)
+        </button>
+    </div>
+    {% endif %}
+</form>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const checkboxes = document.querySelectorAll('.employee-toggle');
+
+    checkboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            const employeeId = this.dataset.employeeId;
+            const entryDiv = document.getElementById(`entry-${employeeId}`);
+
+            if (entryDiv) {
+                entryDiv.style.display = this.checked ? 'block' : 'none';
+            }
+        });
+
+        const employeeId = checkbox.dataset.employeeId;
+        const entryDiv = document.getElementById(`entry-${employeeId}`);
+        if (entryDiv) {
+            entryDiv.style.display = checkbox.checked ? 'block' : 'none';
+        }
+    });
+});
+</script>
+{% endblock %}

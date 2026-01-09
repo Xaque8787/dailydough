@@ -1,0 +1,196 @@
+from fastapi import APIRouter, Depends, Request, Form, HTTPException
+from fastapi.responses import RedirectResponse, HTMLResponse
+from fastapi.templating import Jinja2Templates
+from sqlalchemy.orm import Session
+from datetime import date, datetime
+from typing import List, Optional
+from app.database import get_db
+from app.models import User, Employee, DailyBalance, DailyEmployeeEntry
+from app.auth.jwt_handler import get_current_user
+from app.utils.csv_generator import generate_daily_balance_csv
+
+router = APIRouter()
+templates = Jinja2Templates(directory="app/templates")
+
+DAYS_OF_WEEK = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+
+@router.get("/daily-balance", response_class=HTMLResponse)
+async def daily_balance_page(
+    request: Request,
+    selected_date: Optional[str] = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    if selected_date:
+        target_date = datetime.strptime(selected_date, "%Y-%m-%d").date()
+    else:
+        target_date = date.today()
+
+    day_of_week = DAYS_OF_WEEK[target_date.weekday()]
+
+    daily_balance = db.query(DailyBalance).filter(DailyBalance.date == target_date).first()
+
+    all_employees = db.query(Employee).all()
+    scheduled_employees = [emp for emp in all_employees if day_of_week in emp.scheduled_days]
+
+    employee_entries = {}
+    if daily_balance:
+        for entry in daily_balance.employee_entries:
+            employee_entries[entry.employee_id] = entry
+
+    working_employees = []
+    if daily_balance:
+        working_employees = [entry.employee for entry in daily_balance.employee_entries]
+    else:
+        working_employees = scheduled_employees
+
+    return templates.TemplateResponse(
+        "daily_balance/form.html",
+        {
+            "request": request,
+            "current_user": current_user,
+            "target_date": target_date,
+            "day_of_week": day_of_week,
+            "daily_balance": daily_balance,
+            "all_employees": all_employees,
+            "working_employees": working_employees,
+            "employee_entries": employee_entries,
+            "scheduled_employees": scheduled_employees
+        }
+    )
+
+@router.post("/daily-balance/save")
+async def save_daily_balance(
+    request: Request,
+    target_date: str = Form(...),
+    total_cash_sales: float = Form(0.0),
+    total_card_sales: float = Form(0.0),
+    total_tips_collected: float = Form(0.0),
+    notes: str = Form(""),
+    employee_ids: List[int] = Form([]),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    date_obj = datetime.strptime(target_date, "%Y-%m-%d").date()
+    day_of_week = DAYS_OF_WEEK[date_obj.weekday()]
+
+    daily_balance = db.query(DailyBalance).filter(DailyBalance.date == date_obj).first()
+
+    if not daily_balance:
+        daily_balance = DailyBalance(
+            date=date_obj,
+            day_of_week=day_of_week,
+            total_cash_sales=total_cash_sales,
+            total_card_sales=total_card_sales,
+            total_tips_collected=total_tips_collected,
+            notes=notes,
+            finalized=False
+        )
+        db.add(daily_balance)
+        db.flush()
+    else:
+        daily_balance.total_cash_sales = total_cash_sales
+        daily_balance.total_card_sales = total_card_sales
+        daily_balance.total_tips_collected = total_tips_collected
+        daily_balance.notes = notes
+
+    form_data = await request.form()
+
+    for entry in daily_balance.employee_entries:
+        db.delete(entry)
+    db.flush()
+
+    for emp_id in employee_ids:
+        bank_card_sales = float(form_data.get(f"bank_card_sales_{emp_id}", 0.0))
+        bank_card_tips = float(form_data.get(f"bank_card_tips_{emp_id}", 0.0))
+        cash_tips = float(form_data.get(f"cash_tips_{emp_id}", 0.0))
+        total_sales = float(form_data.get(f"total_sales_{emp_id}", 0.0))
+        adjustments = float(form_data.get(f"adjustments_{emp_id}", 0.0))
+
+        calculated_take_home = bank_card_tips + cash_tips + adjustments
+
+        entry = DailyEmployeeEntry(
+            daily_balance_id=daily_balance.id,
+            employee_id=emp_id,
+            bank_card_sales=bank_card_sales,
+            bank_card_tips=bank_card_tips,
+            cash_tips=cash_tips,
+            total_sales=total_sales,
+            adjustments=adjustments,
+            calculated_take_home=calculated_take_home
+        )
+        db.add(entry)
+
+    db.commit()
+
+    return RedirectResponse(url=f"/daily-balance?selected_date={target_date}", status_code=302)
+
+@router.post("/daily-balance/finalize")
+async def finalize_daily_balance(
+    request: Request,
+    target_date: str = Form(...),
+    total_cash_sales: float = Form(0.0),
+    total_card_sales: float = Form(0.0),
+    total_tips_collected: float = Form(0.0),
+    notes: str = Form(""),
+    employee_ids: List[int] = Form([]),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    date_obj = datetime.strptime(target_date, "%Y-%m-%d").date()
+    day_of_week = DAYS_OF_WEEK[date_obj.weekday()]
+
+    daily_balance = db.query(DailyBalance).filter(DailyBalance.date == date_obj).first()
+
+    if not daily_balance:
+        daily_balance = DailyBalance(
+            date=date_obj,
+            day_of_week=day_of_week,
+            total_cash_sales=total_cash_sales,
+            total_card_sales=total_card_sales,
+            total_tips_collected=total_tips_collected,
+            notes=notes,
+            finalized=True
+        )
+        db.add(daily_balance)
+        db.flush()
+    else:
+        daily_balance.total_cash_sales = total_cash_sales
+        daily_balance.total_card_sales = total_card_sales
+        daily_balance.total_tips_collected = total_tips_collected
+        daily_balance.notes = notes
+        daily_balance.finalized = True
+
+    form_data = await request.form()
+
+    for entry in daily_balance.employee_entries:
+        db.delete(entry)
+    db.flush()
+
+    for emp_id in employee_ids:
+        bank_card_sales = float(form_data.get(f"bank_card_sales_{emp_id}", 0.0))
+        bank_card_tips = float(form_data.get(f"bank_card_tips_{emp_id}", 0.0))
+        cash_tips = float(form_data.get(f"cash_tips_{emp_id}", 0.0))
+        total_sales = float(form_data.get(f"total_sales_{emp_id}", 0.0))
+        adjustments = float(form_data.get(f"adjustments_{emp_id}", 0.0))
+
+        calculated_take_home = bank_card_tips + cash_tips + adjustments
+
+        entry = DailyEmployeeEntry(
+            daily_balance_id=daily_balance.id,
+            employee_id=emp_id,
+            bank_card_sales=bank_card_sales,
+            bank_card_tips=bank_card_tips,
+            cash_tips=cash_tips,
+            total_sales=total_sales,
+            adjustments=adjustments,
+            calculated_take_home=calculated_take_home
+        )
+        db.add(entry)
+
+    db.commit()
+    db.refresh(daily_balance)
+
+    generate_daily_balance_csv(daily_balance, daily_balance.employee_entries)
+
+    return RedirectResponse(url=f"/daily-balance?selected_date={target_date}", status_code=302)

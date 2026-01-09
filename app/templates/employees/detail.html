@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block title %}{{ employee.name }} - Management System{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h2>{{ employee.name }}</h2>
+    <div>
+        <a href="/employees/{{ employee.slug }}/edit" class="btn btn-primary">Edit</a>
+        <a href="/employees" class="btn btn-secondary">Back to Employees</a>
+    </div>
+</div>
+
+<div class="detail-card">
+    <div class="detail-row">
+        <strong>Name:</strong>
+        <span>{{ employee.name }}</span>
+    </div>
+
+    <div class="detail-row">
+        <strong>Slug:</strong>
+        <span>{{ employee.slug }}</span>
+    </div>
+
+    <div class="detail-row">
+        <strong>Position:</strong>
+        <span>{{ employee.position }}</span>
+    </div>
+
+    <div class="detail-row">
+        <strong>Scheduled Days:</strong>
+        <span>{{ employee.scheduled_days|join(', ') if employee.scheduled_days else 'None' }}</span>
+    </div>
+
+    <div class="detail-row">
+        <strong>Bank Card Sales Required:</strong>
+        <span>{% if employee.requires_bank_card_sales %}Yes{% else %}No{% endif %}</span>
+    </div>
+
+    <div class="detail-row">
+        <strong>Cash Tips Required:</strong>
+        <span>{% if employee.requires_cash_tips %}Yes{% else %}No{% endif %}</span>
+    </div>
+
+    <div class="detail-row">
+        <strong>Total Sales Required:</strong>
+        <span>{% if employee.requires_total_sales %}Yes{% else %}No{% endif %}</span>
+    </div>
+</div>
+{% endblock %}

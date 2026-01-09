@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+
+{% block title %}{% if employee %}Edit Employee{% else %}New Employee{% endif %} - Management System{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h2>{% if employee %}Edit Employee: {{ employee.name }}{% else %}Add New Employee{% endif %}</h2>
+    <a href="/employees" class="btn btn-secondary">Back to Employees</a>
+</div>
+
+<div class="form-container">
+    <form method="POST" action="{% if employee %}/employees/{{ employee.slug }}/edit{% else %}/employees/new{% endif %}">
+        <div class="form-group">
+            <label for="name">Full Name</label>
+            <input type="text" id="name" name="name" value="{% if employee %}{{ employee.name }}{% endif %}" required>
+        </div>
+
+        <div class="form-group">
+            <label for="position">Position</label>
+            <input type="text" id="position" name="position" value="{% if employee %}{{ employee.position }}{% endif %}" required placeholder="e.g., waitstaff, bartender, kitchen">
+        </div>
+
+        <div class="form-group">
+            <label>Scheduled Days</label>
+            <div class="checkbox-group">
+                {% set days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'] %}
+                {% for day in days %}
+                <label class="checkbox-label">
+                    <input type="checkbox" name="scheduled_days" value="{{ day }}"
+                           {% if employee and day in employee.scheduled_days %}checked{% endif %}>
+                    {{ day }}
+                </label>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label>Tip Entry Requirements</label>
+            <div class="checkbox-group">
+                <label class="checkbox-label">
+                    <input type="checkbox" name="requires_bank_card_sales" value="true"
+                           {% if employee and employee.requires_bank_card_sales %}checked{% endif %}>
+                    Requires Bank Card Sales
+                </label>
+                <label class="checkbox-label">
+                    <input type="checkbox" name="requires_cash_tips" value="true"
+                           {% if employee and employee.requires_cash_tips %}checked{% endif %}>
+                    Requires Cash Tips
+                </label>
+                <label class="checkbox-label">
+                    <input type="checkbox" name="requires_total_sales" value="true"
+                           {% if employee and employee.requires_total_sales %}checked{% endif %}>
+                    Requires Total Sales
+                </label>
+            </div>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">{% if employee %}Update Employee{% else %}Create Employee{% endif %}</button>
+            <a href="/employees" class="btn btn-secondary">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
