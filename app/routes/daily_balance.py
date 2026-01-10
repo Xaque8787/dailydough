@@ -1,9 +1,10 @@
 from fastapi import APIRouter, Depends, Request, Form, HTTPException
-from fastapi.responses import RedirectResponse, HTMLResponse
+from fastapi.responses import RedirectResponse, HTMLResponse, FileResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 from datetime import date, datetime
 from typing import List, Optional
+import os
 from app.database import get_db
 from app.models import User, Employee, DailyBalance, DailyEmployeeEntry
 from app.auth.jwt_handler import get_current_user
@@ -219,3 +220,37 @@ async def finalize_daily_balance(
     generate_daily_balance_csv(daily_balance, daily_balance.employee_entries)
 
     return RedirectResponse(url=f"/daily-balance?selected_date={target_date}", status_code=302)
+
+@router.get("/daily-balance/export")
+async def export_daily_balance(
+    date: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    if not current_user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+
+    try:
+        date_obj = datetime.strptime(date, "%Y-%m-%d").date()
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid date format")
+
+    daily_balance = db.query(DailyBalance).filter(DailyBalance.date == date_obj).first()
+
+    if not daily_balance or not daily_balance.finalized:
+        raise HTTPException(status_code=404, detail="Finalized report not found for this date")
+
+    filename = f"{date_obj}-daily-balance.csv"
+    filepath = os.path.join("data/reports", filename)
+
+    if not os.path.exists(filepath):
+        generate_daily_balance_csv(daily_balance, daily_balance.employee_entries)
+
+    if not os.path.exists(filepath):
+        raise HTTPException(status_code=404, detail="CSV file not found")
+
+    return FileResponse(
+        path=filepath,
+        filename=filename,
+        media_type="text/csv"
+    )

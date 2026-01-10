@@ -1,0 +1,245 @@
+{% extends "base.html" %}
+
+{% block title %}Reports{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="page-header">
+        <h1>Finalized Reports</h1>
+    </div>
+
+    <div class="month-navigation">
+        <a href="/reports?month={{ prev_month.strftime('%Y-%m') }}" class="btn btn-secondary">
+            ← {{ prev_month.strftime('%B %Y') }}
+        </a>
+        <h2>{{ current_month.strftime('%B %Y') }}</h2>
+        {% if not is_current_month %}
+        <a href="/reports?month={{ next_month.strftime('%Y-%m') }}" class="btn btn-secondary">
+            {{ next_month.strftime('%B %Y') }} →
+        </a>
+        {% else %}
+        <span class="btn btn-secondary disabled">Current Month</span>
+        {% endif %}
+    </div>
+
+    {% if finalized_reports %}
+    <div class="reports-list">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Day</th>
+                    <th>Total Sales</th>
+                    <th>Total Tips</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for report in finalized_reports %}
+                <tr>
+                    <td>{{ report.date.strftime('%Y-%m-%d') }}</td>
+                    <td>{{ report.date.strftime('%A') }}</td>
+                    <td>${{ "%.2f"|format((report.total_cash_sales or 0) + (report.total_card_sales or 0)) }}</td>
+                    <td>${{ "%.2f"|format(report.total_tips_collected or 0) }}</td>
+                    <td>
+                        <button class="btn btn-primary btn-sm" onclick="editReport('{{ report.date.strftime('%Y-%m-%d') }}')">
+                            Edit
+                        </button>
+                        <a href="/daily-balance/export?date={{ report.date.strftime('%Y-%m-%d') }}" class="btn btn-secondary btn-sm">
+                            Download CSV
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <p>No finalized reports for {{ current_month.strftime('%B %Y') }}</p>
+    </div>
+    {% endif %}
+</div>
+
+<div id="edit-warning-modal" class="modal">
+    <div class="modal-content">
+        <h3>Warning: Edit Finalized Report</h3>
+        <p>
+            You are about to edit a finalized report. This action will:
+        </p>
+        <ul>
+            <li>Overwrite the existing database entry for this report</li>
+            <li>Overwrite the exported CSV file if you re-export</li>
+        </ul>
+        <p>Are you sure you want to proceed?</p>
+        <div class="modal-actions">
+            <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+            <button class="btn btn-danger" onclick="confirmEdit()">Yes, Edit Report</button>
+        </div>
+    </div>
+</div>
+
+<style>
+.month-navigation {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 2rem 0;
+    padding: 1.5rem;
+    background: #f8f9fa;
+    border-radius: 8px;
+}
+
+.month-navigation h2 {
+    margin: 0;
+    font-size: 1.5rem;
+}
+
+.reports-list {
+    margin-top: 2rem;
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.table thead {
+    background: #f8f9fa;
+}
+
+.table th,
+.table td {
+    padding: 1rem;
+    text-align: left;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.table th {
+    font-weight: 600;
+    color: #495057;
+}
+
+.table tbody tr:hover {
+    background: #f8f9fa;
+}
+
+.table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 3rem;
+    background: #f8f9fa;
+    border-radius: 8px;
+    margin-top: 2rem;
+}
+
+.empty-state p {
+    color: #6c757d;
+    font-size: 1.1rem;
+}
+
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0,0,0,0.5);
+}
+
+.modal.active {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.modal-content {
+    background-color: white;
+    padding: 2rem;
+    border-radius: 8px;
+    max-width: 500px;
+    width: 90%;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.modal-content h3 {
+    margin-top: 0;
+    color: #dc3545;
+}
+
+.modal-content ul {
+    margin: 1rem 0;
+    padding-left: 1.5rem;
+}
+
+.modal-content ul li {
+    margin: 0.5rem 0;
+}
+
+.modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+    margin-top: 2rem;
+}
+
+.btn-danger {
+    background: #dc3545;
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9rem;
+}
+
+.btn-danger:hover {
+    background: #c82333;
+}
+
+.btn.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+</style>
+
+<script>
+let selectedReportDate = null;
+
+function editReport(date) {
+    selectedReportDate = date;
+    const modal = document.getElementById('edit-warning-modal');
+    modal.classList.add('active');
+}
+
+function closeModal() {
+    const modal = document.getElementById('edit-warning-modal');
+    modal.classList.remove('active');
+    selectedReportDate = null;
+}
+
+function confirmEdit() {
+    if (selectedReportDate) {
+        window.location.href = '/daily-balance?date=' + selectedReportDate;
+    }
+}
+
+window.onclick = function(event) {
+    const modal = document.getElementById('edit-warning-modal');
+    if (event.target === modal) {
+        closeModal();
+    }
+}
+</script>
+{% endblock %}
