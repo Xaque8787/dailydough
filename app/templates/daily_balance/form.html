@@ -37,13 +37,25 @@
             <div class="financial-table">
                 <div class="section-header">
                     <h4>Revenue & Income</h4>
+                    {% if current_user.is_admin %}
+                    <button type="button" class="btn btn-sm" onclick="toggleManageItemsModal('revenue')">
+                        <span class="icon">⚙</span> Manage Items
+                    </button>
+                    {% endif %}
                 </div>
                 <table class="summary-table" id="revenue-table">
                     <tbody>
                         {% for template in financial_templates %}
                             {% if template.category == 'revenue' %}
-                        <tr data-template-id="{{ template.id }}">
-                            <td><label>{{ template.name }}</label></td>
+                        <tr data-template-id="{{ template.id }}" data-is-default="{{ template.is_default }}">
+                            <td>
+                                <label>{{ template.name }}</label>
+                                {% if current_user.is_admin and not template.is_default %}
+                                <button type="button" class="btn-icon btn-remove-small" onclick="deleteFinancialTemplate({{ template.id }}, 'revenue')" title="Remove item">
+                                    <span class="icon">×</span>
+                                </button>
+                                {% endif %}
+                            </td>
                             <td>
                                 <input type="number" step="0.01"
                                        name="financial_item_{{ template.id }}"
@@ -81,13 +93,25 @@
             <div class="financial-table">
                 <div class="section-header">
                     <h4>Deposits & Expenses</h4>
+                    {% if current_user.is_admin %}
+                    <button type="button" class="btn btn-sm" onclick="toggleManageItemsModal('expense')">
+                        <span class="icon">⚙</span> Manage Items
+                    </button>
+                    {% endif %}
                 </div>
                 <table class="summary-table" id="expense-table">
                     <tbody>
                         {% for template in financial_templates %}
                             {% if template.category == 'expense' %}
-                        <tr data-template-id="{{ template.id }}">
-                            <td><label>{{ template.name }}</label></td>
+                        <tr data-template-id="{{ template.id }}" data-is-default="{{ template.is_default }}">
+                            <td>
+                                <label>{{ template.name }}</label>
+                                {% if current_user.is_admin and not template.is_default %}
+                                <button type="button" class="btn-icon btn-remove-small" onclick="deleteFinancialTemplate({{ template.id }}, 'expense')" title="Remove item">
+                                    <span class="icon">×</span>
+                                </button>
+                                {% endif %}
+                            </td>
                             <td>
                                 <input type="number" step="0.01"
                                        name="financial_item_{{ template.id }}"
@@ -121,6 +145,20 @@
                       {% if daily_balance and daily_balance.finalized and not edit_mode %}readonly{% endif %}>{% if daily_balance %}{{ daily_balance.notes }}{% endif %}</textarea>
         </div>
     </div>
+
+    {% if current_user.is_admin %}
+    <div id="manage-items-modal" class="add-employee-modal" style="display: none;">
+        <div class="modal-content-inline">
+            <h4 id="manage-items-title">Manage Financial Items</h4>
+            <div class="form-group">
+                <label for="new-item-name">Item Name</label>
+                <input type="text" id="new-item-name" placeholder="e.g., Liquor Sales" class="form-control">
+            </div>
+            <button type="button" class="btn btn-primary btn-sm" onclick="addFinancialTemplate()">Add Item</button>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="toggleManageItemsModal()">Close</button>
+        </div>
+    </div>
+    {% endif %}
 
     <div class="form-section">
         <div class="section-header">
@@ -466,6 +504,119 @@ function calculateFinancialTotals() {
         cashOverUnderField.style.color = '#dc2626';
     } else {
         cashOverUnderField.style.color = '#000';
+    }
+}
+
+let currentManageCategory = 'revenue';
+
+function toggleManageItemsModal(category) {
+    const modal = document.getElementById('manage-items-modal');
+    const title = document.getElementById('manage-items-title');
+
+    if (modal.style.display === 'none') {
+        currentManageCategory = category;
+        title.textContent = category === 'revenue' ? 'Manage Revenue & Income Items' : 'Manage Deposits & Expenses Items';
+        document.getElementById('new-item-name').value = '';
+        modal.style.display = 'block';
+    } else {
+        modal.style.display = 'none';
+    }
+}
+
+async function addFinancialTemplate() {
+    const nameInput = document.getElementById('new-item-name');
+    const name = nameInput.value.trim();
+
+    if (!name) {
+        alert('Please enter an item name');
+        return;
+    }
+
+    try {
+        const response = await fetch('/api/financial-items/templates', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                name: name,
+                category: currentManageCategory
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to add item');
+        }
+
+        const newTemplate = await response.json();
+
+        const tableId = currentManageCategory === 'revenue' ? 'revenue-table' : 'expense-table';
+        const fieldClass = currentManageCategory === 'revenue' ? 'table1-field' : 'table2-field';
+        const table = document.querySelector(`#${tableId} tbody`);
+        const totalRow = table.querySelector('.total-row');
+
+        const newRow = document.createElement('tr');
+        newRow.dataset.templateId = newTemplate.id;
+        newRow.dataset.isDefault = 'False';
+        newRow.innerHTML = `
+            <td>
+                <label>${newTemplate.name}</label>
+                <button type="button" class="btn-icon btn-remove-small" onclick="deleteFinancialTemplate(${newTemplate.id}, '${currentManageCategory}')" title="Remove item">
+                    <span class="icon">×</span>
+                </button>
+            </td>
+            <td>
+                <input type="number" step="0.01"
+                       name="financial_item_${newTemplate.id}"
+                       class="${fieldClass}"
+                       value="0.00">
+            </td>
+        `;
+
+        table.insertBefore(newRow, totalRow);
+
+        const inputField = newRow.querySelector(`.${fieldClass}`);
+        inputField.addEventListener('input', calculateFinancialTotals);
+
+        nameInput.value = '';
+        calculateFinancialTotals();
+
+        alert('Item added successfully! It will appear on all future days.');
+
+    } catch (error) {
+        console.error('Error adding financial template:', error);
+        alert('Failed to add item. Please try again.');
+    }
+}
+
+async function deleteFinancialTemplate(templateId, category) {
+    if (!confirm('Are you sure you want to remove this item? It will be removed from all future days (existing data will not be affected).')) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`/api/financial-items/templates/${templateId}`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        });
+
+        if (!response.ok) {
+            const data = await response.json();
+            throw new Error(data.detail || 'Failed to delete item');
+        }
+
+        const tableId = category === 'revenue' ? 'revenue-table' : 'expense-table';
+        const row = document.querySelector(`#${tableId} tr[data-template-id="${templateId}"]`);
+        if (row) {
+            row.remove();
+            calculateFinancialTotals();
+        }
+
+    } catch (error) {
+        console.error('Error deleting financial template:', error);
+        alert(error.message || 'Failed to delete item. Please try again.');
     }
 }
 

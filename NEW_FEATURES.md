@@ -28,10 +28,13 @@ The Revenue & Income and Deposits & Expenses tables are now fully manageable.
 - **After**: Dynamic system with persistent templates
 
 #### Features:
-- **Default Templates**: The system comes with all previous categories as default templates
+- **Default Templates**: The system comes with all previous categories as default templates (cannot be deleted)
 - **Persistence**: Templates persist across all days
 - **Day-Specific Values**: Each day stores its own values for each template
 - **Employee Tips Integration**: Tips on Paycheck entries are automatically added to Revenue & Income for the specific day
+- **Add New Items**: Admin users can add custom line items (e.g., "Liquor Sales", "Merchandise")
+- **Remove Items**: Admin users can remove custom items (default items are protected)
+- **Manage Items Button**: Click the "⚙ Manage Items" button to add new categories
 
 #### Current Default Templates:
 
@@ -113,12 +116,27 @@ CSV reports have been updated to include:
    - Includes this in the Cash Over/Under calculation
 4. When you Generate Report, this appears in the CSV for accounting records
 
+## How to Use CRUD Financial Items
+
+### Adding a New Line Item (Admin Only):
+1. Go to the Daily Balance page
+2. In either the "Revenue & Income" or "Deposits & Expenses" section, click the "⚙ Manage Items" button
+3. Enter the name of the new item (e.g., "Liquor Sales")
+4. Click "Add Item"
+5. The new item will appear in the table and will be available on all future days
+
+### Removing a Custom Line Item (Admin Only):
+1. Find the custom item in the table (custom items have a small "×" button)
+2. Click the "×" button next to the item name
+3. Confirm the deletion
+4. The item will be removed from future days (existing data is preserved)
+
+**Note**: Default items (like Food Sales, Cash Drawers Beginning, etc.) cannot be removed.
+
 ## Future Enhancements
 
-Potential additions for managing templates:
-- Admin interface to add custom financial line items
-- Ability to remove or hide default templates
-- Reorder line items
+Potential additions:
+- Reorder line items by drag-and-drop
+- Edit/rename existing templates
 - Archive unused templates
-
-These features can be added through the existing API endpoints in `/api/financial-items/templates`.
+- Import/export template configurations
