@@ -3,6 +3,7 @@ import shutil
 from datetime import datetime
 from typing import List, Dict
 import sqlite3
+from app.database import DATABASE_PATH
 
 
 def create_backup() -> str:
@@ -10,24 +11,45 @@ def create_backup() -> str:
     if not os.path.exists(backups_dir):
         os.makedirs(backups_dir)
 
+    if not os.path.exists(DATABASE_PATH):
+        raise FileNotFoundError("Database file not found")
+
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     filename = f"backup_{timestamp}.db"
     filepath = os.path.join(backups_dir, filename)
 
-    db_path = "data/tips.db"
+    src_conn = None
+    dst_conn = None
 
-    if not os.path.exists(db_path):
-        raise FileNotFoundError("Database file not found")
+    try:
+        src_conn = sqlite3.connect(DATABASE_PATH)
+        dst_conn = sqlite3.connect(filepath)
 
-    src_conn = sqlite3.connect(db_path)
-    dst_conn = sqlite3.connect(filepath)
+        with src_conn:
+            src_conn.backup(dst_conn)
 
-    src_conn.backup(dst_conn)
+        dst_conn.close()
+        src_conn.close()
 
-    src_conn.close()
-    dst_conn.close()
+        if not os.path.exists(filepath):
+            raise Exception("Backup file was not created")
 
-    return filename
+        if os.path.getsize(filepath) == 0:
+            os.remove(filepath)
+            raise Exception("Backup file is empty")
+
+        return filename
+
+    except Exception as e:
+        if dst_conn:
+            dst_conn.close()
+        if src_conn:
+            src_conn.close()
+
+        if os.path.exists(filepath):
+            os.remove(filepath)
+
+        raise Exception(f"Backup failed: {str(e)}")
 
 
 def list_backups() -> List[Dict[str, any]]:
