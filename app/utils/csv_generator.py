@@ -99,6 +99,7 @@ def generate_tip_report_csv(db: Session, start_date: date, end_date: date) -> st
             "Total Bank Card Tips",
             "Total Cash Tips",
             "Total Adjustments",
+            "Total Tips on Paycheck",
             "Total Take Home",
             "Number of Shifts"
         ])
@@ -116,6 +117,7 @@ def generate_tip_report_csv(db: Session, start_date: date, end_date: date) -> st
                 total_bank_card_tips = sum(entry.bank_card_tips or 0 for entry in entries)
                 total_cash_tips = sum(entry.cash_tips or 0 for entry in entries)
                 total_adjustments = sum(entry.adjustments or 0 for entry in entries)
+                total_tips_on_paycheck = sum(entry.tips_on_paycheck or 0 for entry in entries)
                 total_take_home = sum(entry.calculated_take_home or 0 for entry in entries)
                 num_shifts = len(entries)
 
@@ -125,6 +127,7 @@ def generate_tip_report_csv(db: Session, start_date: date, end_date: date) -> st
                     f"${total_bank_card_tips:.2f}",
                     f"${total_cash_tips:.2f}",
                     f"${total_adjustments:.2f}",
+                    f"${total_tips_on_paycheck:.2f}",
                     f"${total_take_home:.2f}",
                     num_shifts
                 ])
@@ -152,6 +155,7 @@ def generate_tip_report_csv(db: Session, start_date: date, end_date: date) -> st
                     "Total Sales",
                     "Cash Tips",
                     "Adjustments",
+                    "Tips on Paycheck",
                     "Take Home"
                 ])
 
@@ -164,12 +168,14 @@ def generate_tip_report_csv(db: Session, start_date: date, end_date: date) -> st
                         f"${entry.total_sales:.2f}",
                         f"${entry.cash_tips:.2f}",
                         f"${entry.adjustments:.2f}",
+                        f"${entry.tips_on_paycheck:.2f}",
                         f"${entry.calculated_take_home:.2f}"
                     ])
 
                 total_bank_card_tips = sum(entry.bank_card_tips or 0 for entry in entries)
                 total_cash_tips = sum(entry.cash_tips or 0 for entry in entries)
                 total_adjustments = sum(entry.adjustments or 0 for entry in entries)
+                total_tips_on_paycheck = sum(entry.tips_on_paycheck or 0 for entry in entries)
                 total_take_home = sum(entry.calculated_take_home or 0 for entry in entries)
 
                 writer.writerow([
@@ -180,6 +186,7 @@ def generate_tip_report_csv(db: Session, start_date: date, end_date: date) -> st
                     "",
                     f"${total_cash_tips:.2f}",
                     f"${total_adjustments:.2f}",
+                    f"${total_tips_on_paycheck:.2f}",
                     f"${total_take_home:.2f}"
                 ])
                 writer.writerow([])

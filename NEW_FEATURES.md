@@ -120,28 +120,40 @@ CSV reports have been updated to include:
 
 ## How to Use CRUD Financial Items
 
-### Adding a New Line Item (Admin Only):
+### Entering Management Mode (Admin Only):
 1. Go to the Daily Balance page
 2. In either the "Revenue & Income" or "Deposits & Expenses" section, click the "⚙ Manage Items" button
-3. Enter the name of the new item (e.g., "Liquor Sales")
-4. Click "Add Item"
-5. The new item will appear in the table and will be available on all future days
+3. This will:
+   - Show edit (✎) and delete (×) buttons next to all items
+   - Open a dialog to add new items
+   - Change the button text to "Add New Item"
+4. Click the button again to exit management mode and hide all editing controls
+
+### Adding a New Line Item (Admin Only):
+1. Enter management mode by clicking "⚙ Manage Items"
+2. In the dialog that appears, enter the name of the new item (e.g., "Liquor Sales")
+3. Click "Add Item"
+4. The new item will appear in the table and will be available on all future days
+5. You can close the dialog using "Close" button and continue editing other items
+6. Click "Add New Item" to reopen the dialog
 
 ### Renaming a Line Item (Admin Only):
-1. Find the item you want to rename in either table
-2. Click the blue "✎" (edit) button next to the item name
-3. The item name becomes an editable text field
-4. Type the new name
-5. Click the green "✓" (save) button to save, or gray "✗" (cancel) button to cancel
-6. The renamed item will update across all future days
+1. Enter management mode by clicking "⚙ Manage Items"
+2. Find the item you want to rename
+3. Click the blue "✎" (edit) button next to the item name
+4. The item name becomes an editable text field
+5. Type the new name
+6. Click the green "✓" (save) button to save, or gray "✗" (cancel) button to cancel
+7. The renamed item will update across all future days
 
 ### Removing a Line Item (Admin Only):
-1. Find the item in the table
-2. Click the red "×" button next to the item name
-3. Confirm the deletion
-4. The item will be removed from all future days (existing data is preserved)
+1. Enter management mode by clicking "⚙ Manage Items"
+2. Find the item you want to remove
+3. Click the red "×" button next to the item name
+4. Confirm the deletion
+5. The item will be removed from all future days (existing data is preserved)
 
-**Note**: You can now edit or remove ANY item, including the original defaults. Be careful when deleting items as this affects all future daily balance forms!
+**Note**: You can edit or remove ANY item, including the original defaults. Be careful when deleting items as this affects all future daily balance forms!
 
 ## Future Enhancements
 

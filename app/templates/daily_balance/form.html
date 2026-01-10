@@ -38,8 +38,8 @@
                 <div class="section-header">
                     <h4>Revenue & Income</h4>
                     {% if current_user.is_admin %}
-                    <button type="button" class="btn btn-sm" onclick="toggleManageItemsModal('revenue')">
-                        <span class="icon">⚙</span> Manage Items
+                    <button type="button" class="btn btn-sm" id="manage-revenue-btn" onclick="toggleManagementMode('revenue')">
+                        <span class="icon">⚙</span> <span id="manage-revenue-text">Manage Items</span>
                     </button>
                     {% endif %}
                 </div>
@@ -52,18 +52,20 @@
                                 <span class="item-name-display" id="name-display-{{ template.id }}">{{ template.name }}</span>
                                 <input type="text" class="item-name-edit" id="name-edit-{{ template.id }}" value="{{ template.name }}" style="display: none;">
                                 {% if current_user.is_admin %}
-                                <button type="button" class="btn-icon btn-edit-small" onclick="startEditItemName({{ template.id }})" id="edit-btn-{{ template.id }}" title="Rename item">
-                                    <span class="icon">✎</span>
-                                </button>
-                                <button type="button" class="btn-icon btn-save-small" onclick="saveItemName({{ template.id }}, 'revenue')" id="save-btn-{{ template.id }}" style="display: none;" title="Save">
-                                    <span class="icon">✓</span>
-                                </button>
-                                <button type="button" class="btn-icon btn-cancel-small" onclick="cancelEditItemName({{ template.id }})" id="cancel-btn-{{ template.id }}" style="display: none;" title="Cancel">
-                                    <span class="icon">✗</span>
-                                </button>
-                                <button type="button" class="btn-icon btn-remove-small" onclick="deleteFinancialTemplate({{ template.id }}, 'revenue')" title="Remove item">
-                                    <span class="icon">×</span>
-                                </button>
+                                <span class="item-management-controls" style="display: none;">
+                                    <button type="button" class="btn-icon btn-edit-small" onclick="startEditItemName({{ template.id }})" id="edit-btn-{{ template.id }}" title="Rename item">
+                                        <span class="icon">✎</span>
+                                    </button>
+                                    <button type="button" class="btn-icon btn-save-small" onclick="saveItemName({{ template.id }}, 'revenue')" id="save-btn-{{ template.id }}" style="display: none;" title="Save">
+                                        <span class="icon">✓</span>
+                                    </button>
+                                    <button type="button" class="btn-icon btn-cancel-small" onclick="cancelEditItemName({{ template.id }})" id="cancel-btn-{{ template.id }}" style="display: none;" title="Cancel">
+                                        <span class="icon">✗</span>
+                                    </button>
+                                    <button type="button" class="btn-icon btn-remove-small" onclick="deleteFinancialTemplate({{ template.id }}, 'revenue')" title="Remove item">
+                                        <span class="icon">×</span>
+                                    </button>
+                                </span>
                                 {% endif %}
                             </td>
                             <td>
@@ -104,8 +106,8 @@
                 <div class="section-header">
                     <h4>Deposits & Expenses</h4>
                     {% if current_user.is_admin %}
-                    <button type="button" class="btn btn-sm" onclick="toggleManageItemsModal('expense')">
-                        <span class="icon">⚙</span> Manage Items
+                    <button type="button" class="btn btn-sm" id="manage-expense-btn" onclick="toggleManagementMode('expense')">
+                        <span class="icon">⚙</span> <span id="manage-expense-text">Manage Items</span>
                     </button>
                     {% endif %}
                 </div>
@@ -118,18 +120,20 @@
                                 <span class="item-name-display" id="name-display-{{ template.id }}">{{ template.name }}</span>
                                 <input type="text" class="item-name-edit" id="name-edit-{{ template.id }}" value="{{ template.name }}" style="display: none;">
                                 {% if current_user.is_admin %}
-                                <button type="button" class="btn-icon btn-edit-small" onclick="startEditItemName({{ template.id }})" id="edit-btn-{{ template.id }}" title="Rename item">
-                                    <span class="icon">✎</span>
-                                </button>
-                                <button type="button" class="btn-icon btn-save-small" onclick="saveItemName({{ template.id }}, 'expense')" id="save-btn-{{ template.id }}" style="display: none;" title="Save">
-                                    <span class="icon">✓</span>
-                                </button>
-                                <button type="button" class="btn-icon btn-cancel-small" onclick="cancelEditItemName({{ template.id }})" id="cancel-btn-{{ template.id }}" style="display: none;" title="Cancel">
-                                    <span class="icon">✗</span>
-                                </button>
-                                <button type="button" class="btn-icon btn-remove-small" onclick="deleteFinancialTemplate({{ template.id }}, 'expense')" title="Remove item">
-                                    <span class="icon">×</span>
-                                </button>
+                                <span class="item-management-controls" style="display: none;">
+                                    <button type="button" class="btn-icon btn-edit-small" onclick="startEditItemName({{ template.id }})" id="edit-btn-{{ template.id }}" title="Rename item">
+                                        <span class="icon">✎</span>
+                                    </button>
+                                    <button type="button" class="btn-icon btn-save-small" onclick="saveItemName({{ template.id }}, 'expense')" id="save-btn-{{ template.id }}" style="display: none;" title="Save">
+                                        <span class="icon">✓</span>
+                                    </button>
+                                    <button type="button" class="btn-icon btn-cancel-small" onclick="cancelEditItemName({{ template.id }})" id="cancel-btn-{{ template.id }}" style="display: none;" title="Cancel">
+                                        <span class="icon">✗</span>
+                                    </button>
+                                    <button type="button" class="btn-icon btn-remove-small" onclick="deleteFinancialTemplate({{ template.id }}, 'expense')" title="Remove item">
+                                        <span class="icon">×</span>
+                                    </button>
+                                </span>
                                 {% endif %}
                             </td>
                             <td>
@@ -175,7 +179,7 @@
                 <input type="text" id="new-item-name" placeholder="e.g., Liquor Sales" class="form-control">
             </div>
             <button type="button" class="btn btn-primary btn-sm" onclick="addFinancialTemplate()">Add Item</button>
-            <button type="button" class="btn btn-secondary btn-sm" onclick="toggleManageItemsModal()">Close</button>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="closeManageModal()">Close</button>
         </div>
     </div>
     {% endif %}
@@ -528,19 +532,40 @@ function calculateFinancialTotals() {
 }
 
 let currentManageCategory = 'revenue';
+let isManagementModeActive = {
+    revenue: false,
+    expense: false
+};
 
-function toggleManageItemsModal(category) {
+function toggleManagementMode(category) {
+    const isActive = isManagementModeActive[category];
+    const buttonTextElement = document.getElementById(`manage-${category}-text`);
     const modal = document.getElementById('manage-items-modal');
     const title = document.getElementById('manage-items-title');
 
-    if (modal.style.display === 'none') {
+    const tableId = category === 'revenue' ? 'revenue-table' : 'expense-table';
+    const controls = document.querySelectorAll(`#${tableId} .item-management-controls`);
+
+    if (!isActive) {
+        controls.forEach(control => control.style.display = 'inline');
+        buttonTextElement.textContent = 'Add New Item';
+        isManagementModeActive[category] = true;
+
         currentManageCategory = category;
-        title.textContent = category === 'revenue' ? 'Manage Revenue & Income Items' : 'Manage Deposits & Expenses Items';
+        title.textContent = category === 'revenue' ? 'Add Revenue & Income Item' : 'Add Deposits & Expenses Item';
         document.getElementById('new-item-name').value = '';
         modal.style.display = 'block';
     } else {
+        controls.forEach(control => control.style.display = 'none');
+        buttonTextElement.textContent = 'Manage Items';
+        isManagementModeActive[category] = false;
         modal.style.display = 'none';
     }
+}
+
+function closeManageModal() {
+    const modal = document.getElementById('manage-items-modal');
+    modal.style.display = 'none';
 }
 
 async function addFinancialTemplate() {
@@ -577,13 +602,25 @@ async function addFinancialTemplate() {
 
         const newRow = document.createElement('tr');
         newRow.dataset.templateId = newTemplate.id;
-        newRow.dataset.isDefault = 'False';
+        newRow.dataset.templateName = newTemplate.name;
         newRow.innerHTML = `
             <td>
-                <label>${newTemplate.name}</label>
-                <button type="button" class="btn-icon btn-remove-small" onclick="deleteFinancialTemplate(${newTemplate.id}, '${currentManageCategory}')" title="Remove item">
-                    <span class="icon">×</span>
-                </button>
+                <span class="item-name-display" id="name-display-${newTemplate.id}">${newTemplate.name}</span>
+                <input type="text" class="item-name-edit" id="name-edit-${newTemplate.id}" value="${newTemplate.name}" style="display: none;">
+                <span class="item-management-controls" style="display: ${isManagementModeActive[currentManageCategory] ? 'inline' : 'none'};">
+                    <button type="button" class="btn-icon btn-edit-small" onclick="startEditItemName(${newTemplate.id})" id="edit-btn-${newTemplate.id}" title="Rename item">
+                        <span class="icon">✎</span>
+                    </button>
+                    <button type="button" class="btn-icon btn-save-small" onclick="saveItemName(${newTemplate.id}, '${currentManageCategory}')" id="save-btn-${newTemplate.id}" style="display: none;" title="Save">
+                        <span class="icon">✓</span>
+                    </button>
+                    <button type="button" class="btn-icon btn-cancel-small" onclick="cancelEditItemName(${newTemplate.id})" id="cancel-btn-${newTemplate.id}" style="display: none;" title="Cancel">
+                        <span class="icon">✗</span>
+                    </button>
+                    <button type="button" class="btn-icon btn-remove-small" onclick="deleteFinancialTemplate(${newTemplate.id}, '${currentManageCategory}')" title="Remove item">
+                        <span class="icon">×</span>
+                    </button>
+                </span>
             </td>
             <td>
                 <input type="number" step="0.01"
