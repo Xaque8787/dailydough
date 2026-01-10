@@ -47,10 +47,20 @@
                     <tbody>
                         {% for template in financial_templates %}
                             {% if template.category == 'revenue' %}
-                        <tr data-template-id="{{ template.id }}" data-is-default="{{ template.is_default }}">
+                        <tr data-template-id="{{ template.id }}" data-template-name="{{ template.name }}">
                             <td>
-                                <label>{{ template.name }}</label>
-                                {% if current_user.is_admin and not template.is_default %}
+                                <span class="item-name-display" id="name-display-{{ template.id }}">{{ template.name }}</span>
+                                <input type="text" class="item-name-edit" id="name-edit-{{ template.id }}" value="{{ template.name }}" style="display: none;">
+                                {% if current_user.is_admin %}
+                                <button type="button" class="btn-icon btn-edit-small" onclick="startEditItemName({{ template.id }})" id="edit-btn-{{ template.id }}" title="Rename item">
+                                    <span class="icon">✎</span>
+                                </button>
+                                <button type="button" class="btn-icon btn-save-small" onclick="saveItemName({{ template.id }}, 'revenue')" id="save-btn-{{ template.id }}" style="display: none;" title="Save">
+                                    <span class="icon">✓</span>
+                                </button>
+                                <button type="button" class="btn-icon btn-cancel-small" onclick="cancelEditItemName({{ template.id }})" id="cancel-btn-{{ template.id }}" style="display: none;" title="Cancel">
+                                    <span class="icon">✗</span>
+                                </button>
                                 <button type="button" class="btn-icon btn-remove-small" onclick="deleteFinancialTemplate({{ template.id }}, 'revenue')" title="Remove item">
                                     <span class="icon">×</span>
                                 </button>
@@ -103,10 +113,20 @@
                     <tbody>
                         {% for template in financial_templates %}
                             {% if template.category == 'expense' %}
-                        <tr data-template-id="{{ template.id }}" data-is-default="{{ template.is_default }}">
+                        <tr data-template-id="{{ template.id }}" data-template-name="{{ template.name }}">
                             <td>
-                                <label>{{ template.name }}</label>
-                                {% if current_user.is_admin and not template.is_default %}
+                                <span class="item-name-display" id="name-display-{{ template.id }}">{{ template.name }}</span>
+                                <input type="text" class="item-name-edit" id="name-edit-{{ template.id }}" value="{{ template.name }}" style="display: none;">
+                                {% if current_user.is_admin %}
+                                <button type="button" class="btn-icon btn-edit-small" onclick="startEditItemName({{ template.id }})" id="edit-btn-{{ template.id }}" title="Rename item">
+                                    <span class="icon">✎</span>
+                                </button>
+                                <button type="button" class="btn-icon btn-save-small" onclick="saveItemName({{ template.id }}, 'expense')" id="save-btn-{{ template.id }}" style="display: none;" title="Save">
+                                    <span class="icon">✓</span>
+                                </button>
+                                <button type="button" class="btn-icon btn-cancel-small" onclick="cancelEditItemName({{ template.id }})" id="cancel-btn-{{ template.id }}" style="display: none;" title="Cancel">
+                                    <span class="icon">✗</span>
+                                </button>
                                 <button type="button" class="btn-icon btn-remove-small" onclick="deleteFinancialTemplate({{ template.id }}, 'expense')" title="Remove item">
                                     <span class="icon">×</span>
                                 </button>
@@ -586,6 +606,85 @@ async function addFinancialTemplate() {
     } catch (error) {
         console.error('Error adding financial template:', error);
         alert('Failed to add item. Please try again.');
+    }
+}
+
+function startEditItemName(templateId) {
+    const display = document.getElementById(`name-display-${templateId}`);
+    const edit = document.getElementById(`name-edit-${templateId}`);
+    const editBtn = document.getElementById(`edit-btn-${templateId}`);
+    const saveBtn = document.getElementById(`save-btn-${templateId}`);
+    const cancelBtn = document.getElementById(`cancel-btn-${templateId}`);
+
+    display.style.display = 'none';
+    edit.style.display = 'inline-block';
+    editBtn.style.display = 'none';
+    saveBtn.style.display = 'inline-block';
+    cancelBtn.style.display = 'inline-block';
+
+    edit.focus();
+    edit.select();
+}
+
+function cancelEditItemName(templateId) {
+    const display = document.getElementById(`name-display-${templateId}`);
+    const edit = document.getElementById(`name-edit-${templateId}`);
+    const editBtn = document.getElementById(`edit-btn-${templateId}`);
+    const saveBtn = document.getElementById(`save-btn-${templateId}`);
+    const cancelBtn = document.getElementById(`cancel-btn-${templateId}`);
+
+    const row = document.querySelector(`tr[data-template-id="${templateId}"]`);
+    edit.value = row.dataset.templateName;
+
+    display.style.display = 'inline';
+    edit.style.display = 'none';
+    editBtn.style.display = 'inline-block';
+    saveBtn.style.display = 'none';
+    cancelBtn.style.display = 'none';
+}
+
+async function saveItemName(templateId, category) {
+    const edit = document.getElementById(`name-edit-${templateId}`);
+    const newName = edit.value.trim();
+
+    if (!newName) {
+        alert('Item name cannot be empty');
+        return;
+    }
+
+    try {
+        const response = await fetch(`/api/financial-items/templates/${templateId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                name: newName
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to update item name');
+        }
+
+        const display = document.getElementById(`name-display-${templateId}`);
+        const editBtn = document.getElementById(`edit-btn-${templateId}`);
+        const saveBtn = document.getElementById(`save-btn-${templateId}`);
+        const cancelBtn = document.getElementById(`cancel-btn-${templateId}`);
+        const row = document.querySelector(`tr[data-template-id="${templateId}"]`);
+
+        display.textContent = newName;
+        row.dataset.templateName = newName;
+
+        display.style.display = 'inline';
+        edit.style.display = 'none';
+        editBtn.style.display = 'inline-block';
+        saveBtn.style.display = 'none';
+        cancelBtn.style.display = 'none';
+
+    } catch (error) {
+        console.error('Error updating item name:', error);
+        alert('Failed to update item name. Please try again.');
     }
 }
 

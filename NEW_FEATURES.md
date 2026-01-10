@@ -28,13 +28,15 @@ The Revenue & Income and Deposits & Expenses tables are now fully manageable.
 - **After**: Dynamic system with persistent templates
 
 #### Features:
-- **Default Templates**: The system comes with all previous categories as default templates (cannot be deleted)
+- **Default Templates**: The system comes with all previous categories as default templates
 - **Persistence**: Templates persist across all days
 - **Day-Specific Values**: Each day stores its own values for each template
 - **Employee Tips Integration**: Tips on Paycheck entries are automatically added to Revenue & Income for the specific day
-- **Add New Items**: Admin users can add custom line items (e.g., "Liquor Sales", "Merchandise")
-- **Remove Items**: Admin users can remove custom items (default items are protected)
-- **Manage Items Button**: Click the "⚙ Manage Items" button to add new categories
+- **Full CRUD Operations**: Admin users can Create, Read, Update, and Delete ALL line items
+  - **Add** new items via "⚙ Manage Items" button
+  - **Rename** any item (including defaults) using the "✎" button
+  - **Remove** any item (including defaults) using the "×" button
+- **Inline Editing**: Rename items directly in the table with save/cancel options
 
 #### Current Default Templates:
 
@@ -125,18 +127,25 @@ CSV reports have been updated to include:
 4. Click "Add Item"
 5. The new item will appear in the table and will be available on all future days
 
-### Removing a Custom Line Item (Admin Only):
-1. Find the custom item in the table (custom items have a small "×" button)
-2. Click the "×" button next to the item name
-3. Confirm the deletion
-4. The item will be removed from future days (existing data is preserved)
+### Renaming a Line Item (Admin Only):
+1. Find the item you want to rename in either table
+2. Click the blue "✎" (edit) button next to the item name
+3. The item name becomes an editable text field
+4. Type the new name
+5. Click the green "✓" (save) button to save, or gray "✗" (cancel) button to cancel
+6. The renamed item will update across all future days
 
-**Note**: Default items (like Food Sales, Cash Drawers Beginning, etc.) cannot be removed.
+### Removing a Line Item (Admin Only):
+1. Find the item in the table
+2. Click the red "×" button next to the item name
+3. Confirm the deletion
+4. The item will be removed from all future days (existing data is preserved)
+
+**Note**: You can now edit or remove ANY item, including the original defaults. Be careful when deleting items as this affects all future daily balance forms!
 
 ## Future Enhancements
 
 Potential additions:
 - Reorder line items by drag-and-drop
-- Edit/rename existing templates
 - Archive unused templates
 - Import/export template configurations

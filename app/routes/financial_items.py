@@ -108,9 +108,6 @@ async def delete_template(
     if not db_template:
         raise HTTPException(status_code=404, detail="Template not found")
 
-    if db_template.is_default:
-        raise HTTPException(status_code=400, detail="Cannot delete default templates")
-
     db.delete(db_template)
     db.commit()
 
