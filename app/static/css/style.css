@@ -358,6 +358,25 @@ body {
     font-weight: 600;
 }
 
+.badge-warning {
+    background-color: #fff3cd;
+    color: #856404;
+    padding: 0.4rem 0.8rem;
+    font-weight: 600;
+}
+
+.alert {
+    padding: 1rem;
+    margin-bottom: 1rem;
+    border-radius: 4px;
+}
+
+.alert-warning {
+    background-color: #fff3cd;
+    color: #856404;
+    border: 1px solid #ffeaa7;
+}
+
 .employee-entry {
     background: #f8f9fa;
     padding: 1rem;

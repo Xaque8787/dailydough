@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, Request, Form, HTTPException
 from fastapi.responses import RedirectResponse, HTMLResponse, FileResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
-from datetime import date, datetime
+from datetime import date as date_cls, datetime
 from typing import List, Optional
 import os
 from app.database import get_db
@@ -36,13 +36,16 @@ def serialize_employee(emp):
 async def daily_balance_page(
     request: Request,
     selected_date: Optional[str] = None,
+    date: Optional[str] = None,
+    edit: Optional[bool] = False,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    if selected_date:
-        target_date = datetime.strptime(selected_date, "%Y-%m-%d").date()
+    date_param = selected_date or date
+    if date_param:
+        target_date = datetime.strptime(date_param, "%Y-%m-%d").date()
     else:
-        target_date = date.today()
+        target_date = date_cls.today()
 
     day_of_week = DAYS_OF_WEEK[target_date.weekday()]
 
@@ -77,7 +80,8 @@ async def daily_balance_page(
             "working_employees": working_employees,
             "working_employee_ids": working_employee_ids,
             "employee_entries": employee_entries,
-            "scheduled_employees": scheduled_employees
+            "scheduled_employees": scheduled_employees,
+            "edit_mode": edit
         }
     )
 

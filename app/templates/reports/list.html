@@ -231,7 +231,7 @@ function closeModal() {
 
 function confirmEdit() {
     if (selectedReportDate) {
-        window.location.href = '/daily-balance?date=' + selectedReportDate;
+        window.location.href = '/daily-balance?date=' + selectedReportDate + '&edit=true';
     }
 }
 

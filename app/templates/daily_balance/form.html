@@ -13,9 +13,19 @@
 <div class="daily-info">
     <h3>{{ target_date }} - {{ day_of_week }}</h3>
     {% if daily_balance and daily_balance.finalized %}
-    <span class="badge badge-success">Finalized</span>
+        {% if edit_mode %}
+        <span class="badge badge-warning">Editing Finalized Report</span>
+        {% else %}
+        <span class="badge badge-success">Finalized</span>
+        {% endif %}
     {% endif %}
 </div>
+
+{% if edit_mode %}
+<div class="alert alert-warning">
+    <strong>⚠️ Warning:</strong> You are editing a finalized report. Changes will overwrite the existing database entry and CSV file when saved.
+</div>
+{% endif %}
 
 <form method="POST" action="{% if daily_balance and daily_balance.finalized %}/daily-balance/save{% else %}/daily-balance/save{% endif %}" id="dailyBalanceForm">
     <input type="hidden" name="target_date" value="{{ target_date }}">
@@ -28,42 +38,42 @@
                 <label for="total_cash_sales">Total Cash Sales</label>
                 <input type="number" step="0.01" id="total_cash_sales" name="total_cash_sales"
                        value="{% if daily_balance %}{{ daily_balance.total_cash_sales }}{% else %}0.00{% endif %}"
-                       {% if daily_balance and daily_balance.finalized %}readonly{% endif %}>
+                       {% if daily_balance and daily_balance.finalized and not edit_mode %}readonly{% endif %}>
             </div>
 
             <div class="form-group">
                 <label for="total_card_sales">Total Card Sales</label>
                 <input type="number" step="0.01" id="total_card_sales" name="total_card_sales"
                        value="{% if daily_balance %}{{ daily_balance.total_card_sales }}{% else %}0.00{% endif %}"
-                       {% if daily_balance and daily_balance.finalized %}readonly{% endif %}>
+                       {% if daily_balance and daily_balance.finalized and not edit_mode %}readonly{% endif %}>
             </div>
 
             <div class="form-group">
                 <label for="total_tips_collected">Total Tips Collected</label>
                 <input type="number" step="0.01" id="total_tips_collected" name="total_tips_collected"
                        value="{% if daily_balance %}{{ daily_balance.total_tips_collected }}{% else %}0.00{% endif %}"
-                       {% if daily_balance and daily_balance.finalized %}readonly{% endif %}>
+                       {% if daily_balance and daily_balance.finalized and not edit_mode %}readonly{% endif %}>
             </div>
         </div>
 
         <div class="form-group">
             <label for="notes">Notes</label>
             <textarea id="notes" name="notes" rows="3"
-                      {% if daily_balance and daily_balance.finalized %}readonly{% endif %}>{% if daily_balance %}{{ daily_balance.notes }}{% endif %}</textarea>
+                      {% if daily_balance and daily_balance.finalized and not edit_mode %}readonly{% endif %}>{% if daily_balance %}{{ daily_balance.notes }}{% endif %}</textarea>
         </div>
     </div>
 
     <div class="form-section">
         <div class="section-header">
             <h3>Employee Entries</h3>
-            {% if not (daily_balance and daily_balance.finalized) %}
+            {% if not (daily_balance and daily_balance.finalized and not edit_mode) %}
             <button type="button" class="btn btn-sm" onclick="toggleAddEmployeeModal()">
                 <span class="icon">+</span> Add Employee
             </button>
             {% endif %}
         </div>
 
-        {% if not (daily_balance and daily_balance.finalized) %}
+        {% if not (daily_balance and daily_balance.finalized and not edit_mode) %}
         <div id="add-employee-modal" class="add-employee-modal" style="display: none;">
             <div class="modal-content-inline">
                 <h4>Add Employee</h4>
@@ -81,7 +91,7 @@
             <div class="employee-entry" id="entry-{{ emp.id }}" data-employee-id="{{ emp.id }}">
                 <div class="employee-entry-header">
                     <h4>{{ emp.name }} - {{ emp.position.name }}</h4>
-                    {% if not (daily_balance and daily_balance.finalized) %}
+                    {% if not (daily_balance and daily_balance.finalized and not edit_mode) %}
                     <button type="button" class="btn-icon btn-remove" onclick="removeEmployee({{ emp.id }})" title="Remove employee">
                         <span class="icon">−</span>
                     </button>
@@ -101,19 +111,19 @@
                             {% elif req.field_name == 'bank_card_sales' %}
                             <input type="number" step="0.01" name="bank_card_sales_{{ emp.id }}"
                                    value="{% if employee_entries.get(emp.id) %}{{ employee_entries.get(emp.id).bank_card_sales }}{% else %}0.00{% endif %}"
-                                   {% if daily_balance and daily_balance.finalized %}readonly{% endif %}>
+                                   {% if daily_balance and daily_balance.finalized and not edit_mode %}readonly{% endif %}>
                             {% elif req.field_name == 'bank_card_tips' %}
                             <input type="number" step="0.01" name="bank_card_tips_{{ emp.id }}"
                                    value="{% if employee_entries.get(emp.id) %}{{ employee_entries.get(emp.id).bank_card_tips }}{% else %}0.00{% endif %}"
-                                   {% if daily_balance and daily_balance.finalized %}readonly{% endif %}>
+                                   {% if daily_balance and daily_balance.finalized and not edit_mode %}readonly{% endif %}>
                             {% elif req.field_name == 'total_sales' %}
                             <input type="number" step="0.01" name="total_sales_{{ emp.id }}"
                                    value="{% if employee_entries.get(emp.id) %}{{ employee_entries.get(emp.id).total_sales }}{% else %}0.00{% endif %}"
-                                   {% if daily_balance and daily_balance.finalized %}readonly{% endif %}>
+                                   {% if daily_balance and daily_balance.finalized and not edit_mode %}readonly{% endif %}>
                             {% elif req.field_name == 'cash_tips' %}
                             <input type="number" step="0.01" name="cash_tips_{{ emp.id }}"
                                    value="{% if employee_entries.get(emp.id) %}{{ employee_entries.get(emp.id).cash_tips }}{% else %}0.00{% endif %}"
-                                   {% if daily_balance and daily_balance.finalized %}readonly{% endif %}>
+                                   {% if daily_balance and daily_balance.finalized and not edit_mode %}readonly{% endif %}>
                             {% endif %}
                         </div>
                         {% endif %}
@@ -123,7 +133,7 @@
                         <label>Adjustments</label>
                         <input type="number" step="0.01" name="adjustments_{{ emp.id }}"
                                value="{% if employee_entries.get(emp.id) %}{{ employee_entries.get(emp.id).adjustments }}{% else %}0.00{% endif %}"
-                               {% if daily_balance and daily_balance.finalized %}readonly{% endif %}>
+                               {% if daily_balance and daily_balance.finalized and not edit_mode %}readonly{% endif %}>
                     </div>
                 </div>
             </div>
@@ -131,7 +141,7 @@
         </div>
     </div>
 
-    {% if not (daily_balance and daily_balance.finalized) %}
+    {% if not (daily_balance and daily_balance.finalized and not edit_mode) %}
     <div class="form-actions">
         <button type="submit" class="btn btn-secondary" formaction="/daily-balance/save">Save Draft</button>
         <button type="submit" class="btn btn-primary" formaction="/daily-balance/finalize"
