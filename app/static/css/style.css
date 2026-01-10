@@ -343,22 +343,19 @@ body {
 }
 
 .badge {
-    padding: 0.4rem 0.8rem;
+    display: inline-block;
+    padding: 0.25rem 0.5rem;
+    margin: 0.25rem;
+    background: #e3f2fd;
     border-radius: 4px;
-    font-size: 0.9rem;
-    font-weight: 600;
+    font-size: 0.875rem;
 }
 
 .badge-success {
     background-color: #d4edda;
     color: #155724;
-}
-
-.employee-selector {
-    background: #f8f9fa;
-    padding: 1rem;
-    border-radius: 4px;
-    margin-bottom: 1.5rem;
+    padding: 0.4rem 0.8rem;
+    font-weight: 600;
 }
 
 .employee-entry {
@@ -368,9 +365,90 @@ body {
     margin-bottom: 1rem;
 }
 
-.employee-entry h4 {
+.employee-entry-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     margin-bottom: 1rem;
+}
+
+.employee-entry h4 {
+    margin: 0;
     color: #2c3e50;
+}
+
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.section-header h3 {
+    margin: 0;
+}
+
+.btn-icon {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+    font-size: 1.5rem;
+    line-height: 1;
+}
+
+.btn-icon:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+.btn-remove {
+    color: #e74c3c;
+}
+
+.btn-remove:hover {
+    background-color: #fee;
+}
+
+.icon {
+    display: inline-block;
+    font-weight: bold;
+}
+
+.add-employee-modal {
+    background: #fff;
+    border: 2px solid #3498db;
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+}
+
+.modal-content-inline {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.modal-content-inline h4 {
+    width: 100%;
+    margin: 0 0 0.5rem 0;
+    color: #2c3e50;
+}
+
+.employee-add-select {
+    flex: 1;
+    min-width: 200px;
+    padding: 0.5rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 1rem;
+}
+
+.btn-sm {
+    padding: 0.5rem 1rem;
+    font-size: 0.9rem;
 }
 
 .calculated-field {

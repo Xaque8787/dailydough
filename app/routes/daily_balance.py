@@ -14,6 +14,23 @@ templates = Jinja2Templates(directory="app/templates")
 
 DAYS_OF_WEEK = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
 
+def serialize_employee(emp):
+    return {
+        "id": emp.id,
+        "name": emp.name,
+        "position": {
+            "id": emp.position.id,
+            "name": emp.position.name,
+            "tip_requirements": [
+                {
+                    "id": req.id,
+                    "name": req.name,
+                    "field_name": req.field_name
+                } for req in emp.position.tip_requirements
+            ]
+        }
+    }
+
 @router.get("/daily-balance", response_class=HTMLResponse)
 async def daily_balance_page(
     request: Request,
@@ -44,6 +61,8 @@ async def daily_balance_page(
     else:
         working_employees = scheduled_employees
 
+    all_employees_serialized = [serialize_employee(emp) for emp in all_employees]
+
     return templates.TemplateResponse(
         "daily_balance/form.html",
         {
@@ -52,7 +71,7 @@ async def daily_balance_page(
             "target_date": target_date,
             "day_of_week": day_of_week,
             "daily_balance": daily_balance,
-            "all_employees": all_employees,
+            "all_employees": all_employees_serialized,
             "working_employees": working_employees,
             "employee_entries": employee_entries,
             "scheduled_employees": scheduled_employees
@@ -67,7 +86,6 @@ async def save_daily_balance(
     total_card_sales: float = Form(0.0),
     total_tips_collected: float = Form(0.0),
     notes: str = Form(""),
-    employee_ids: List[int] = Form([]),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -95,6 +113,9 @@ async def save_daily_balance(
         daily_balance.notes = notes
 
     form_data = await request.form()
+
+    employee_ids = form_data.getlist("employee_ids")
+    employee_ids = [int(emp_id) for emp_id in employee_ids if emp_id]
 
     for entry in daily_balance.employee_entries:
         db.delete(entry)
@@ -133,7 +154,6 @@ async def finalize_daily_balance(
     total_card_sales: float = Form(0.0),
     total_tips_collected: float = Form(0.0),
     notes: str = Form(""),
-    employee_ids: List[int] = Form([]),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -162,6 +182,9 @@ async def finalize_daily_balance(
         daily_balance.finalized = True
 
     form_data = await request.form()
+
+    employee_ids = form_data.getlist("employee_ids")
+    employee_ids = [int(emp_id) for emp_id in employee_ids if emp_id]
 
     for entry in daily_balance.employee_entries:
         db.delete(entry)
