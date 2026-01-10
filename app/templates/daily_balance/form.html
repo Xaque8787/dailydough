@@ -144,7 +144,7 @@
 
 <script>
 const allEmployees = {{ all_employees | tojson }};
-const workingEmployeeIds = new Set({{ [emp.id for emp in working_employees] | tojson }});
+const workingEmployeeIds = new Set({{ working_employee_ids | tojson }});
 
 function updateAddEmployeeDropdown() {
     const select = document.getElementById('employee-to-add');

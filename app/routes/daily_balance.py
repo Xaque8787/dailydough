@@ -62,6 +62,7 @@ async def daily_balance_page(
         working_employees = scheduled_employees
 
     all_employees_serialized = [serialize_employee(emp) for emp in all_employees]
+    working_employee_ids = [emp.id for emp in working_employees]
 
     return templates.TemplateResponse(
         "daily_balance/form.html",
@@ -73,6 +74,7 @@ async def daily_balance_page(
             "daily_balance": daily_balance,
             "all_employees": all_employees_serialized,
             "working_employees": working_employees,
+            "working_employee_ids": working_employee_ids,
             "employee_entries": employee_entries,
             "scheduled_employees": scheduled_employees
         }
