@@ -41,7 +41,10 @@
                     <td>{{ report.date.strftime('%Y-%m-%d') }}</td>
                     <td>{{ report.date.strftime('%A') }}</td>
                     <td>
-                        <button class="btn btn-primary btn-sm" onclick="editReport('{{ report.date.strftime('%Y-%m-%d') }}')">
+                        <a href="/daily-balance?selected_date={{ report.date.strftime('%Y-%m-%d') }}" class="btn btn-primary btn-sm">
+                            View
+                        </a>
+                        <button class="btn btn-secondary btn-sm" onclick="editReport('{{ report.date.strftime('%Y-%m-%d') }}')">
                             Edit
                         </button>
                         <a href="/daily-balance/export?date={{ report.date.strftime('%Y-%m-%d') }}" class="btn btn-secondary btn-sm">

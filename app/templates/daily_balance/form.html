@@ -16,10 +16,20 @@
         {% if edit_mode %}
         <span class="badge badge-warning">Editing Finalized Report</span>
         {% else %}
-        <span class="badge badge-success">Finalized</span>
+        <span class="badge badge-success">Viewing Finalized Report</span>
         {% endif %}
     {% endif %}
 </div>
+
+{% if daily_balance and daily_balance.finalized and not edit_mode %}
+<div class="view-mode-banner">
+    <div class="banner-content">
+        <span class="icon">👁️</span>
+        <span>You are viewing a finalized report in read-only mode.</span>
+        <a href="/reports/daily-balance" class="btn btn-secondary btn-sm">Back to Reports</a>
+    </div>
+</div>
+{% endif %}
 
 {% if edit_mode %}
 <div class="alert alert-warning">
@@ -37,7 +47,7 @@
             <div class="financial-table">
                 <div class="section-header">
                     <h4>Revenue & Income</h4>
-                    {% if current_user.is_admin %}
+                    {% if current_user.is_admin and not (daily_balance and daily_balance.finalized and not edit_mode) %}
                     <button type="button" class="btn btn-sm" id="manage-revenue-btn" onclick="toggleManagementMode('revenue')">
                         <span class="icon">⚙</span> <span id="manage-revenue-text">Manage Items</span>
                     </button>
@@ -105,7 +115,7 @@
             <div class="financial-table">
                 <div class="section-header">
                     <h4>Deposits & Expenses</h4>
-                    {% if current_user.is_admin %}
+                    {% if current_user.is_admin and not (daily_balance and daily_balance.finalized and not edit_mode) %}
                     <button type="button" class="btn btn-sm" id="manage-expense-btn" onclick="toggleManagementMode('expense')">
                         <span class="icon">⚙</span> <span id="manage-expense-text">Manage Items</span>
                     </button>
