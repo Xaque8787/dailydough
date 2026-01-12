@@ -34,6 +34,16 @@ Run migrations in the following order:
    - Updates all default positions with correct tip requirements
    - Adds new "Prep" position
 
+7. **add_display_order_to_tip_requirements.py**
+   - Adds `display_order` column to `tip_entry_requirements` table
+   - Sets default display order values for existing requirements
+   - Enables global ordering of tip requirements across all positions
+
+8. **remove_display_order_from_position_tip_requirements.py**
+   - Removes `display_order` column from `position_tip_requirements` junction table
+   - Migrates to global tip requirement ordering system
+   - Preserves all existing position-requirement associations
+
 ## Running Migrations
 
 To run a specific migration:
@@ -51,6 +61,14 @@ python3 migrations/add_crud_financial_items_migration.py
 python3 migrations/remove_old_fields_migration.py
 python3 migrations/add_tip_out_field.py
 python3 migrations/update_tip_requirements_and_positions.py
+python3 migrations/add_display_order_to_tip_requirements.py
+python3 migrations/remove_display_order_from_position_tip_requirements.py
+```
+
+Or use the automated script:
+
+```bash
+python3 migrations/run_all_migrations.py
 ```
 
 ## Notes

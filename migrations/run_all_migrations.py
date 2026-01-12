@@ -22,6 +22,8 @@ import add_crud_financial_items_migration
 import remove_old_fields_migration
 import add_tip_out_field
 import update_tip_requirements_and_positions
+import add_display_order_to_tip_requirements
+import remove_display_order_from_position_tip_requirements
 
 def run_all_migrations():
     """Run all migrations in the correct order."""
@@ -32,6 +34,8 @@ def run_all_migrations():
         ("Remove Old Fields", remove_old_fields_migration.migrate),
         ("Add Tip Out Field", add_tip_out_field.migrate),
         ("Update Tip Requirements and Positions", update_tip_requirements_and_positions.migrate),
+        ("Add Display Order to Tip Requirements", add_display_order_to_tip_requirements.migrate),
+        ("Remove Display Order from Position Tip Requirements", remove_display_order_from_position_tip_requirements.migrate),
     ]
 
     print("=" * 60)
