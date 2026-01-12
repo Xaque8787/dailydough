@@ -198,10 +198,10 @@ async def tip_report_page(
         }
     )
 
-@router.get("/reports/tip-report/employee/{employee_id}")
+@router.get("/reports/tip-report/employee/{employee_slug}")
 async def employee_tip_report(
     request: Request,
-    employee_id: int,
+    employee_slug: str,
     start_date: Optional[str] = None,
     end_date: Optional[str] = None,
     month: Optional[str] = None,
@@ -211,7 +211,7 @@ async def employee_tip_report(
     if not current_user:
         return RedirectResponse(url="/login", status_code=303)
 
-    employee = db.query(Employee).filter(Employee.id == employee_id).first()
+    employee = db.query(Employee).filter(Employee.slug == employee_slug).first()
     if not employee:
         return RedirectResponse(url="/reports/tip-report", status_code=303)
 
@@ -239,7 +239,7 @@ async def employee_tip_report(
         end_date_obj = start_date_obj + relativedelta(months=1) - relativedelta(days=1)
 
     entries = db.query(DailyEmployeeEntry).filter(
-        DailyEmployeeEntry.employee_id == employee_id
+        DailyEmployeeEntry.employee_id == employee.id
     ).join(DailyBalance).filter(
         DailyBalance.finalized == True,
         DailyBalance.date >= start_date_obj,
