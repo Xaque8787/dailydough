@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+  app:
+    image: ghcr.io/YOUR_GITHUB_USERNAME/YOUR_APP_NAME:latest
+    container_name: management-system
+    ports:
+      - "5710:5710"
+    environment:
+      - SECRET_KEY=${SECRET_KEY:-change-this-in-production}
+      - DATABASE_URL=sqlite:///app/data/database.db
+      - TZ=America/New_York
+    volumes:
+      - ./data:/app/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5710/"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
