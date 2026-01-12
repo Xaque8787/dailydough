@@ -17,11 +17,11 @@ mkdir -p /app/data
 
 # Check if database exists
 if [ ! -f /app/data/database.db ]; then
-    echo "Database not found. Running migrations to initialize..."
-    python3 /app/run_migrations.py
+    echo "Database not found. Initializing with current schema..."
+    python3 -c "from app.database import init_db; init_db(); print('Database initialized successfully!')"
 else
-    echo "Database exists. Skipping initial migrations."
-    echo "Note: To run migrations manually, use: python3 /app/run_migrations.py"
+    echo "Database exists. Running migrations to update schema..."
+    python3 /app/run_migrations.py
 fi
 
 echo "=========================================="
