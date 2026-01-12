@@ -16,6 +16,7 @@ class User(Base):
     username = Column(String, unique=True, index=True, nullable=False)
     password_hash = Column(String, nullable=False)
     slug = Column(String, unique=True, index=True, nullable=False)
+    email = Column(String, nullable=True)
     is_admin = Column(Boolean, default=False)
 
 class Position(Base):

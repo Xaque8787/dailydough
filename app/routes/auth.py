@@ -49,6 +49,7 @@ async def login(
 async def setup_admin(
     request: Request,
     username: str = Form(...),
+    email: str = Form(None),
     password: str = Form(...),
     db: Session = Depends(get_db)
 ):
@@ -61,6 +62,7 @@ async def setup_admin(
         username=username,
         password_hash=get_password_hash(password),
         slug=slug,
+        email=email if email else None,
         is_admin=True
     )
     db.add(new_user)

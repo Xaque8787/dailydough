@@ -16,6 +16,11 @@
         </div>
 
         <div class="form-group">
+            <label for="email">Email (Optional)</label>
+            <input type="email" id="email" name="email" value="{% if user and user.email %}{{ user.email }}{% endif %}">
+        </div>
+
+        <div class="form-group">
             <label for="password">Password{% if user %} (leave blank to keep current){% endif %}</label>
             <input type="password" id="password" name="password" {% if not user %}required{% endif %}>
         </div>

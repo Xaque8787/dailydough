@@ -39,6 +39,7 @@ async def new_user_page(
 async def create_user(
     request: Request,
     username: str = Form(...),
+    email: str = Form(None),
     password: str = Form(...),
     is_admin: bool = Form(False),
     db: Session = Depends(get_db),
@@ -54,6 +55,7 @@ async def create_user(
         username=username,
         password_hash=get_password_hash(password),
         slug=slug,
+        email=email if email else None,
         is_admin=is_admin
     )
     db.add(new_user)
@@ -82,6 +84,7 @@ async def update_user(
     slug: str,
     request: Request,
     username: str = Form(...),
+    email: str = Form(None),
     password: str = Form(None),
     is_admin: bool = Form(False),
     db: Session = Depends(get_db),
@@ -92,6 +95,7 @@ async def update_user(
         raise HTTPException(status_code=404, detail="User not found")
 
     user.username = username
+    user.email = email if email else None
     if password:
         user.password_hash = get_password_hash(password)
     user.is_admin = is_admin
