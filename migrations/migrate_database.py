@@ -1,9 +1,13 @@
 import sqlite3
 import os
 
-DATABASE_PATH = "data/database.db"
-
 def migrate_database():
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    project_root = os.path.dirname(script_dir)
+    DATABASE_PATH = os.path.join(project_root, "data", "database.db")
+
+    print(f"Looking for database at: {DATABASE_PATH}")
+
     if not os.path.exists(DATABASE_PATH):
         print(f"Database not found at {DATABASE_PATH}")
         print("No migration needed - database will be created with new schema on first run")
@@ -50,6 +54,10 @@ def migrate_database():
         print(f"\nMigration completed! Added {len(columns_added)} new columns.")
     else:
         print("\nNo migration needed - all columns already exist.")
+
+def migrate():
+    """Alias for consistency with other migration scripts."""
+    return migrate_database()
 
 if __name__ == "__main__":
     print("Starting database migration...")

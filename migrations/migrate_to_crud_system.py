@@ -13,7 +13,11 @@ import os
 from datetime import datetime
 
 def migrate():
-    db_path = "data/database.db"
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    project_root = os.path.dirname(script_dir)
+    db_path = os.path.join(project_root, "data", "database.db")
+
+    print(f"Looking for database at: {db_path}")
 
     if not os.path.exists(db_path):
         print("Database does not exist. Will be created with new structure on first run.")
