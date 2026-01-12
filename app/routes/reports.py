@@ -10,7 +10,7 @@ from app.database import get_db
 from app.models import User, DailyBalance, Employee, DailyEmployeeEntry
 from app.auth.jwt_handler import get_current_user
 from app.utils.csv_generator import generate_tip_report_csv, generate_consolidated_daily_balance_csv
-from app.utils.csv_reader import get_saved_tip_reports, parse_tip_report_csv, get_saved_daily_balance_reports
+from app.utils.csv_reader import get_saved_tip_reports, parse_tip_report_csv, get_saved_daily_balance_reports, parse_daily_balance_csv
 
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
@@ -104,6 +104,39 @@ async def export_consolidated_daily_balance(
         path=filepath,
         filename=filename,
         media_type="text/csv"
+    )
+
+@router.get("/reports/daily-balance/view/{year}/{month}/{filename}")
+async def view_saved_daily_balance_report(
+    request: Request,
+    year: str,
+    month: str,
+    filename: str,
+    current_user: User = Depends(get_current_user)
+):
+    if not current_user:
+        return RedirectResponse(url="/login", status_code=303)
+
+    filepath = os.path.join("data", "reports", "daily_report", year, month, filename)
+
+    if not os.path.exists(filepath):
+        return RedirectResponse(url="/reports/daily-balance", status_code=303)
+
+    report_data = parse_daily_balance_csv(filepath)
+
+    if not report_data:
+        return RedirectResponse(url="/reports/daily-balance", status_code=303)
+
+    return templates.TemplateResponse(
+        "reports/view_saved_daily_balance_report.html",
+        {
+            "request": request,
+            "current_user": current_user,
+            "filename": filename,
+            "report_data": report_data,
+            "year": year,
+            "month": month
+        }
     )
 
 @router.get("/reports/daily-balance/download/{year}/{month}/{filename}")

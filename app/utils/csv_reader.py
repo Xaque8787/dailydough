@@ -195,3 +195,121 @@ def parse_tip_report_csv(filepath: str) -> Dict[str, Any]:
             })
 
     return report_data
+
+def parse_daily_balance_csv(filepath: str) -> Dict[str, Any]:
+    if not os.path.exists(filepath):
+        return None
+
+    with open(filepath, 'r', newline='') as csvfile:
+        reader = csv.reader(csvfile)
+        rows = list(reader)
+
+    if len(rows) < 2:
+        return None
+
+    report_data = {
+        'title': rows[0][0] if rows[0] else 'Consolidated Daily Balance Report',
+        'date_range': rows[1][1] if len(rows[1]) > 1 else '',
+        'daily_reports': []
+    }
+
+    i = 3
+    while i < len(rows):
+        row = rows[i]
+
+        if row and len(row) > 0 and row[0].startswith('Date: '):
+            date_parts = row[0].replace('Date: ', '').split(' - ')
+            report_date = date_parts[0] if len(date_parts) > 0 else ''
+            day_of_week = date_parts[1] if len(date_parts) > 1 else ''
+
+            daily_report = {
+                'date': report_date,
+                'day_of_week': day_of_week,
+                'notes': '',
+                'revenue_items': [],
+                'expense_items': [],
+                'revenue_total': 0,
+                'expense_total': 0,
+                'cash_over_under': 0,
+                'employees': []
+            }
+
+            i += 1
+
+            if i < len(rows) and rows[i] and len(rows[i]) > 1 and rows[i][0] == 'Notes':
+                daily_report['notes'] = rows[i][1]
+                i += 1
+
+            while i < len(rows) and (not rows[i] or len(rows[i]) == 0 or rows[i][0] == ''):
+                i += 1
+
+            if i < len(rows) and rows[i] and rows[i][0] == 'Revenue & Income':
+                i += 1
+                while i < len(rows) and rows[i] and len(rows[i]) >= 2:
+                    if rows[i][0] == 'Total Revenue':
+                        daily_report['revenue_total'] = rows[i][1]
+                        i += 1
+                        break
+                    elif rows[i][0] and rows[i][0] not in ['', 'Deposits & Expenses', 'Employee Breakdown']:
+                        daily_report['revenue_items'].append({
+                            'name': rows[i][0],
+                            'value': rows[i][1]
+                        })
+                    i += 1
+
+            while i < len(rows) and (not rows[i] or len(rows[i]) == 0 or rows[i][0] == ''):
+                i += 1
+
+            if i < len(rows) and rows[i] and rows[i][0] == 'Deposits & Expenses':
+                i += 1
+                while i < len(rows) and rows[i] and len(rows[i]) >= 2:
+                    if rows[i][0] == 'Total Expenses':
+                        daily_report['expense_total'] = rows[i][1]
+                        i += 1
+                        break
+                    elif rows[i][0] and rows[i][0] not in ['', 'Cash Over/Under', 'Employee Breakdown']:
+                        daily_report['expense_items'].append({
+                            'name': rows[i][0],
+                            'value': rows[i][1]
+                        })
+                    i += 1
+
+            while i < len(rows) and (not rows[i] or len(rows[i]) == 0 or rows[i][0] == ''):
+                i += 1
+
+            if i < len(rows) and rows[i] and rows[i][0] == 'Cash Over/Under':
+                daily_report['cash_over_under'] = rows[i][1]
+                i += 1
+
+            while i < len(rows) and (not rows[i] or len(rows[i]) == 0 or rows[i][0] == ''):
+                i += 1
+
+            if i < len(rows) and rows[i] and rows[i][0] == 'Employee Breakdown':
+                i += 1
+
+                if i < len(rows) and rows[i] and rows[i][0] == 'Employee Name':
+                    i += 1
+
+                while i < len(rows) and rows[i] and len(rows[i]) >= 10:
+                    if rows[i][0] in ['', '=' * 80] or rows[i][0].startswith('Date: '):
+                        break
+
+                    daily_report['employees'].append({
+                        'name': rows[i][0],
+                        'position': rows[i][1],
+                        'bank_card_sales': rows[i][2],
+                        'bank_card_tips': rows[i][3],
+                        'cash_tips': rows[i][4],
+                        'total_sales': rows[i][5],
+                        'adjustments': rows[i][6],
+                        'tips_on_paycheck': rows[i][7],
+                        'tip_out': rows[i][8],
+                        'take_home': rows[i][9]
+                    })
+                    i += 1
+
+            report_data['daily_reports'].append(daily_report)
+
+        i += 1
+
+    return report_data
