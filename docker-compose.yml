@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   app:
     image: ghcr.io/YOUR_GITHUB_USERNAME/YOUR_APP_NAME:latest
