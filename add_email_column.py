@@ -14,6 +14,13 @@ try:
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
 
+    # Check if users table exists
+    cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='users'")
+    if not cursor.fetchone():
+        print("Users table doesn't exist yet - skipping migration (will be created automatically)")
+        conn.close()
+        exit(0)
+
     cursor.execute("PRAGMA table_info(users)")
     columns = [column[1] for column in cursor.fetchall()]
 
