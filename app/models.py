@@ -6,7 +6,8 @@ position_tip_requirements = Table(
     'position_tip_requirements',
     Base.metadata,
     Column('position_id', Integer, ForeignKey('positions.id'), primary_key=True),
-    Column('tip_requirement_id', Integer, ForeignKey('tip_entry_requirements.id'), primary_key=True)
+    Column('tip_requirement_id', Integer, ForeignKey('tip_entry_requirements.id'), primary_key=True),
+    Column('display_order', Integer, default=0)
 )
 
 class User(Base):

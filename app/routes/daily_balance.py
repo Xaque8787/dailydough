@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, Request, Form, HTTPException
 from fastapi.responses import RedirectResponse, HTMLResponse, FileResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
+from sqlalchemy import text
 from datetime import date as date_cls, datetime
 from typing import List, Optional
 import os
@@ -115,7 +116,26 @@ def save_daily_balance_data(
 
     return daily_balance
 
-def serialize_employee(emp):
+def attach_display_orders_to_employee(emp, db):
+    display_orders = {}
+    result = db.execute(
+        text("SELECT tip_requirement_id, display_order FROM position_tip_requirements WHERE position_id = :position_id ORDER BY display_order"),
+        {"position_id": emp.position.id}
+    )
+    for row in result:
+        display_orders[row[0]] = row[1]
+
+    requirements_with_order = []
+    for req in emp.position.tip_requirements:
+        req.display_order = display_orders.get(req.id, 0)
+        requirements_with_order.append(req)
+
+    requirements_with_order.sort(key=lambda x: x.display_order)
+    emp.position.tip_requirements = requirements_with_order
+
+def serialize_employee(emp, db):
+    attach_display_orders_to_employee(emp, db)
+
     return {
         "id": emp.id,
         "name": emp.name,
@@ -126,7 +146,8 @@ def serialize_employee(emp):
                 {
                     "id": req.id,
                     "name": req.name,
-                    "field_name": req.field_name
+                    "field_name": req.field_name,
+                    "display_order": req.display_order
                 } for req in emp.position.tip_requirements
             ]
         }
@@ -165,7 +186,10 @@ async def daily_balance_page(
     else:
         working_employees = scheduled_employees
 
-    all_employees_serialized = [serialize_employee(emp) for emp in all_employees]
+    for emp in working_employees:
+        attach_display_orders_to_employee(emp, db)
+
+    all_employees_serialized = [serialize_employee(emp, db) for emp in all_employees]
     working_employee_ids = [emp.id for emp in working_employees]
 
     templates_list = db.query(FinancialLineItemTemplate).order_by(

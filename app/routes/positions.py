@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, Request, Form, HTTPException
 from fastapi.responses import RedirectResponse, HTMLResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
+from sqlalchemy import text
 from typing import List
 from app.database import get_db
 from app.models import User, Position, TipEntryRequirement
@@ -54,6 +55,8 @@ async def create_position(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
+    form_data = await request.form()
+
     slug = ensure_unique_slug(db, Position, create_slug(name))
 
     new_position = Position(
@@ -61,12 +64,16 @@ async def create_position(
         slug=slug
     )
 
-    tip_requirements = db.query(TipEntryRequirement).filter(
-        TipEntryRequirement.id.in_(tip_requirement_ids)
-    ).all()
-    new_position.tip_requirements = tip_requirements
-
     db.add(new_position)
+    db.flush()
+
+    for req_id in tip_requirement_ids:
+        display_order = int(form_data.get(f"display_order_{req_id}", 0))
+        db.execute(
+            text("INSERT INTO position_tip_requirements (position_id, tip_requirement_id, display_order) VALUES (:position_id, :req_id, :display_order)"),
+            {"position_id": new_position.id, "req_id": req_id, "display_order": display_order}
+        )
+
     db.commit()
 
     return RedirectResponse(url="/positions", status_code=302)
@@ -83,6 +90,18 @@ async def edit_position_page(
         raise HTTPException(status_code=404, detail="Position not found")
 
     tip_requirements = db.query(TipEntryRequirement).all()
+
+    display_orders = {}
+    result = db.execute(
+        text("SELECT tip_requirement_id, display_order FROM position_tip_requirements WHERE position_id = :position_id"),
+        {"position_id": position.id}
+    )
+    for row in result:
+        display_orders[row[0]] = row[1]
+
+    for req in tip_requirements:
+        req.display_order = display_orders.get(req.id, 0)
+
     return templates.TemplateResponse(
         "positions/form.html",
         {
@@ -102,16 +121,25 @@ async def update_position(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
+    form_data = await request.form()
+
     position = db.query(Position).filter(Position.slug == slug).first()
     if not position:
         raise HTTPException(status_code=404, detail="Position not found")
 
     position.name = name
 
-    tip_requirements = db.query(TipEntryRequirement).filter(
-        TipEntryRequirement.id.in_(tip_requirement_ids)
-    ).all()
-    position.tip_requirements = tip_requirements
+    db.execute(
+        text("DELETE FROM position_tip_requirements WHERE position_id = :position_id"),
+        {"position_id": position.id}
+    )
+
+    for req_id in tip_requirement_ids:
+        display_order = int(form_data.get(f"display_order_{req_id}", 0))
+        db.execute(
+            text("INSERT INTO position_tip_requirements (position_id, tip_requirement_id, display_order) VALUES (:position_id, :req_id, :display_order)"),
+            {"position_id": position.id, "req_id": req_id, "display_order": display_order}
+        )
 
     db.commit()
     return RedirectResponse(url="/positions", status_code=302)
