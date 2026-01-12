@@ -9,7 +9,7 @@ import os
 from app.database import get_db
 from app.models import User, DailyBalance, Employee, DailyEmployeeEntry
 from app.auth.jwt_handler import get_current_user
-from app.utils.csv_generator import generate_tip_report_csv
+from app.utils.csv_generator import generate_tip_report_csv, generate_consolidated_daily_balance_csv
 from app.utils.csv_reader import get_saved_tip_reports, parse_tip_report_csv
 
 router = APIRouter()
@@ -70,6 +70,37 @@ async def daily_balance_reports_page(
             "finalized_reports": finalized_reports,
             "is_current_month": target_date.year == date.today().year and target_date.month == date.today().month
         }
+    )
+
+@router.get("/reports/daily-balance/export")
+async def export_consolidated_daily_balance(
+    start_date: str,
+    end_date: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    if not current_user:
+        return RedirectResponse(url="/login", status_code=303)
+
+    try:
+        start_date_obj = datetime.strptime(start_date, "%Y-%m-%d").date()
+        end_date_obj = datetime.strptime(end_date, "%Y-%m-%d").date()
+    except ValueError:
+        return RedirectResponse(url="/reports/daily-balance", status_code=303)
+
+    filename = generate_consolidated_daily_balance_csv(db, start_date_obj, end_date_obj)
+
+    year = str(start_date_obj.year)
+    month = f"{start_date_obj.month:02d}"
+    filepath = os.path.join("data", "reports", "daily_report", year, month, filename)
+
+    if not os.path.exists(filepath):
+        return RedirectResponse(url="/reports/daily-balance", status_code=303)
+
+    return FileResponse(
+        path=filepath,
+        filename=filename,
+        media_type="text/csv"
     )
 
 @router.get("/reports/tip-report")
