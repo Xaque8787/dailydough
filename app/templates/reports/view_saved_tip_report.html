@@ -1,0 +1,242 @@
+{% extends "base.html" %}
+
+{% block title %}View Tip Report{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="page-header">
+        <div>
+            <a href="/reports/tip-report" class="breadcrumb">← Back to Tip Reports</a>
+            <h1>{{ report_data.title }}</h1>
+            <p class="date-range">{{ report_data.date_range }}</p>
+        </div>
+        <a href="/reports/tip-report/download/{{ filename }}" class="btn btn-primary">
+            Download CSV
+        </a>
+    </div>
+
+    {% if report_data.summary %}
+    <div class="report-section">
+        <h2>Summary</h2>
+        <div class="table-wrapper">
+            <table class="summary-table">
+                <thead>
+                    <tr>
+                        <th>Employee Name</th>
+                        <th>Position</th>
+                        <th>Bank Card Tips</th>
+                        <th>Cash Tips</th>
+                        <th>Adjustments</th>
+                        <th>Tips on Paycheck</th>
+                        <th>Tip Out</th>
+                        <th>Take Home</th>
+                        <th>Shifts</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for employee in report_data.summary %}
+                    <tr>
+                        <td class="employee-name">{{ employee.employee_name }}</td>
+                        <td>{{ employee.position }}</td>
+                        <td class="amount">{{ employee.bank_card_tips }}</td>
+                        <td class="amount">{{ employee.cash_tips }}</td>
+                        <td class="amount">{{ employee.adjustments }}</td>
+                        <td class="amount">{{ employee.tips_on_paycheck }}</td>
+                        <td class="amount">{{ employee.tip_out }}</td>
+                        <td class="amount highlight">{{ employee.take_home }}</td>
+                        <td class="center">{{ employee.num_shifts }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if report_data.details %}
+    <div class="report-section">
+        <h2>Detailed Breakdown</h2>
+        {% for employee_detail in report_data.details %}
+        <div class="employee-detail">
+            <h3>{{ employee_detail.employee }}</h3>
+            <div class="table-wrapper">
+                <table class="detail-table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Day</th>
+                            <th>Bank Card Sales</th>
+                            <th>Bank Card Tips</th>
+                            <th>Total Sales</th>
+                            <th>Cash Tips</th>
+                            <th>Adjustments</th>
+                            <th>Tips on Paycheck</th>
+                            <th>Tip Out</th>
+                            <th>Take Home</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for entry in employee_detail.entries %}
+                        <tr>
+                            <td>{{ entry.date }}</td>
+                            <td>{{ entry.day }}</td>
+                            <td class="amount">{{ entry.bank_card_sales }}</td>
+                            <td class="amount">{{ entry.bank_card_tips }}</td>
+                            <td class="amount">{{ entry.total_sales }}</td>
+                            <td class="amount">{{ entry.cash_tips }}</td>
+                            <td class="amount">{{ entry.adjustments }}</td>
+                            <td class="amount">{{ entry.tips_on_paycheck }}</td>
+                            <td class="amount">{{ entry.tip_out }}</td>
+                            <td class="amount highlight">{{ entry.take_home }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+</div>
+
+<style>
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid #e9ecef;
+}
+
+.page-header > div {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.breadcrumb {
+    color: #3498db;
+    text-decoration: none;
+    font-size: 0.9rem;
+}
+
+.breadcrumb:hover {
+    text-decoration: underline;
+}
+
+.date-range {
+    color: #6c757d;
+    font-size: 1rem;
+    margin: 0;
+}
+
+.report-section {
+    margin-bottom: 3rem;
+}
+
+.report-section h2 {
+    margin-bottom: 1.5rem;
+    color: #2c3e50;
+    font-size: 1.5rem;
+}
+
+.table-wrapper {
+    overflow-x: auto;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.summary-table,
+.detail-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.summary-table thead,
+.detail-table thead {
+    background: #f8f9fa;
+}
+
+.summary-table th,
+.summary-table td,
+.detail-table th,
+.detail-table td {
+    padding: 0.75rem 1rem;
+    text-align: left;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.summary-table th,
+.detail-table th {
+    font-weight: 600;
+    color: #495057;
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.summary-table tbody tr:hover,
+.detail-table tbody tr:hover {
+    background: #f8f9fa;
+}
+
+.summary-table tbody tr:last-child td,
+.detail-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.employee-name {
+    font-weight: 500;
+    color: #2c3e50;
+}
+
+.amount {
+    text-align: right;
+    font-family: 'Monaco', 'Courier New', monospace;
+    font-size: 0.9rem;
+}
+
+.highlight {
+    font-weight: 600;
+    color: #27ae60;
+}
+
+.center {
+    text-align: center;
+}
+
+.employee-detail {
+    margin-bottom: 2rem;
+}
+
+.employee-detail h3 {
+    margin-bottom: 1rem;
+    color: #2c3e50;
+    font-size: 1.25rem;
+    padding: 0.75rem 1rem;
+    background: #e3f2fd;
+    border-radius: 6px;
+}
+
+@media (max-width: 768px) {
+    .page-header {
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .page-header .btn {
+        width: 100%;
+    }
+
+    .summary-table th,
+    .summary-table td,
+    .detail-table th,
+    .detail-table td {
+        padding: 0.5rem;
+        font-size: 0.875rem;
+    }
+}
+</style>
+{% endblock %}

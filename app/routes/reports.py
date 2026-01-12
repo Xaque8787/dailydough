@@ -10,6 +10,7 @@ from app.database import get_db
 from app.models import User, DailyBalance, Employee, DailyEmployeeEntry
 from app.auth.jwt_handler import get_current_user
 from app.utils.csv_generator import generate_tip_report_csv
+from app.utils.csv_reader import get_saved_tip_reports, parse_tip_report_csv
 
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
@@ -96,13 +97,16 @@ async def tip_report_page(
         ).count()
         emp.entry_count = entry_count
 
+    saved_reports = get_saved_tip_reports(limit=4)
+
     return templates.TemplateResponse(
         "reports/tip_report_list.html",
         {
             "request": request,
             "current_user": current_user,
             "employees": employees,
-            "search": search or ""
+            "search": search or "",
+            "saved_reports": saved_reports
         }
     )
 
@@ -199,6 +203,73 @@ async def export_tip_report(
         return RedirectResponse(url="/reports/tip-report", status_code=303)
 
     filename = generate_tip_report_csv(db, start_date_obj, end_date_obj)
+    filepath = os.path.join("data/reports/tip_report", filename)
+
+    if not os.path.exists(filepath):
+        return RedirectResponse(url="/reports/tip-report", status_code=303)
+
+    return FileResponse(
+        path=filepath,
+        filename=filename,
+        media_type="text/csv"
+    )
+
+@router.get("/reports/tip-report/saved")
+async def saved_tip_reports(
+    request: Request,
+    current_user: User = Depends(get_current_user)
+):
+    if not current_user:
+        return RedirectResponse(url="/login", status_code=303)
+
+    saved_reports = get_saved_tip_reports()
+
+    return templates.TemplateResponse(
+        "reports/saved_tip_reports.html",
+        {
+            "request": request,
+            "current_user": current_user,
+            "saved_reports": saved_reports
+        }
+    )
+
+@router.get("/reports/tip-report/view/{filename}")
+async def view_saved_tip_report(
+    request: Request,
+    filename: str,
+    current_user: User = Depends(get_current_user)
+):
+    if not current_user:
+        return RedirectResponse(url="/login", status_code=303)
+
+    filepath = os.path.join("data/reports/tip_report", filename)
+
+    if not os.path.exists(filepath):
+        return RedirectResponse(url="/reports/tip-report", status_code=303)
+
+    report_data = parse_tip_report_csv(filepath)
+
+    if not report_data:
+        return RedirectResponse(url="/reports/tip-report", status_code=303)
+
+    return templates.TemplateResponse(
+        "reports/view_saved_tip_report.html",
+        {
+            "request": request,
+            "current_user": current_user,
+            "filename": filename,
+            "report_data": report_data
+        }
+    )
+
+@router.get("/reports/tip-report/download/{filename}")
+async def download_saved_tip_report(
+    filename: str,
+    current_user: User = Depends(get_current_user)
+):
+    if not current_user:
+        return RedirectResponse(url="/login", status_code=303)
+
     filepath = os.path.join("data/reports/tip_report", filename)
 
     if not os.path.exists(filepath):
