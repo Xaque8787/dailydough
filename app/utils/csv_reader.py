@@ -278,6 +278,12 @@ def parse_daily_balance_csv(filepath: str) -> Dict[str, Any]:
         reader = csv.reader(csvfile)
         rows = list(reader)
 
+    print(f"DEBUG parse_daily_balance_csv: filepath={filepath}")
+    print(f"DEBUG: Total rows={len(rows)}")
+    print(f"DEBUG: First 10 rows:")
+    for idx, row in enumerate(rows[:10]):
+        print(f"  Row {idx}: {row}")
+
     if len(rows) < 2:
         return None
 
@@ -320,8 +326,10 @@ def parse_daily_balance_csv(filepath: str) -> Dict[str, Any]:
             if i < len(rows) and rows[i] and rows[i][0] == 'Revenue & Income':
                 i += 1
                 while i < len(rows) and rows[i] and len(rows[i]) >= 2:
+                    print(f"DEBUG Revenue loop: i={i}, row={rows[i]}")
                     if rows[i][0] == 'Total Revenue':
                         daily_report['revenue_total'] = rows[i][1]
+                        print(f"DEBUG: Set revenue_total to {rows[i][1]}")
                         i += 1
                         break
                     elif rows[i][0] and rows[i][0] not in ['', 'Deposits & Expenses', 'Employee Breakdown']:
@@ -337,8 +345,10 @@ def parse_daily_balance_csv(filepath: str) -> Dict[str, Any]:
             if i < len(rows) and rows[i] and rows[i][0] == 'Deposits & Expenses':
                 i += 1
                 while i < len(rows) and rows[i] and len(rows[i]) >= 2:
+                    print(f"DEBUG Expense loop: i={i}, row={rows[i]}")
                     if rows[i][0] == 'Total Expenses':
                         daily_report['expense_total'] = rows[i][1]
+                        print(f"DEBUG: Set expense_total to {rows[i][1]}")
                         i += 1
                         break
                     elif rows[i][0] and rows[i][0] not in ['', 'Cash Over/Under', 'Employee Breakdown']:
@@ -353,6 +363,7 @@ def parse_daily_balance_csv(filepath: str) -> Dict[str, Any]:
 
             if i < len(rows) and rows[i] and rows[i][0] == 'Cash Over/Under':
                 daily_report['cash_over_under'] = rows[i][1]
+                print(f"DEBUG: Set cash_over_under to {rows[i][1]}")
                 i += 1
 
             while i < len(rows) and (not rows[i] or len(rows[i]) == 0 or rows[i][0] == ''):
