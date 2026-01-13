@@ -457,7 +457,7 @@ async function toggleExportEmailSection() {
         emailContent.style.display = 'none';
 
         try {
-            const response = await fetch('/reports/admin-users?report_type=tips');
+            const response = await fetch('/reports/api/admin-users?report_type=tips');
             const data = await response.json();
 
             if (data.success) {
