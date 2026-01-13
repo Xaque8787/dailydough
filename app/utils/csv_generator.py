@@ -27,13 +27,12 @@ def generate_daily_balance_csv(daily_balance: DailyBalance, employee_entries: Li
         writer = csv.writer(csvfile)
 
         writer.writerow(["Daily Balance Report"])
-        writer.writerow(["Date", daily_balance.date])
-        writer.writerow(["Day of Week", daily_balance.day_of_week])
-        if daily_balance.notes:
-            writer.writerow(["Notes", daily_balance.notes])
+        writer.writerow(["Date Range", str(daily_balance.date)])
         writer.writerow([])
 
-        writer.writerow(["Financial Summary"])
+        writer.writerow([f"Date: {daily_balance.date} - {daily_balance.day_of_week}"])
+        if daily_balance.notes:
+            writer.writerow(["Notes", daily_balance.notes])
         writer.writerow([])
 
         writer.writerow(["Revenue & Income"])
