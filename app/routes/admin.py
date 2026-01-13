@@ -42,6 +42,8 @@ async def create_user(
     email: str = Form(None),
     password: str = Form(...),
     is_admin: bool = Form(False),
+    opt_in_daily_reports: bool = Form(False),
+    opt_in_tip_reports: bool = Form(False),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin_user)
 ):
@@ -56,7 +58,9 @@ async def create_user(
         password_hash=get_password_hash(password),
         slug=slug,
         email=email if email else None,
-        is_admin=is_admin
+        is_admin=is_admin,
+        opt_in_daily_reports=opt_in_daily_reports,
+        opt_in_tip_reports=opt_in_tip_reports
     )
     db.add(new_user)
     db.commit()
@@ -87,6 +91,8 @@ async def update_user(
     email: str = Form(None),
     password: str = Form(None),
     is_admin: bool = Form(False),
+    opt_in_daily_reports: bool = Form(False),
+    opt_in_tip_reports: bool = Form(False),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin_user)
 ):
@@ -99,6 +105,8 @@ async def update_user(
     if password:
         user.password_hash = get_password_hash(password)
     user.is_admin = is_admin
+    user.opt_in_daily_reports = opt_in_daily_reports
+    user.opt_in_tip_reports = opt_in_tip_reports
 
     db.commit()
     return RedirectResponse(url="/admin", status_code=302)

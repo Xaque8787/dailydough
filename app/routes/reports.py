@@ -1,16 +1,22 @@
-from fastapi import APIRouter, Depends, Request
-from fastapi.responses import RedirectResponse, FileResponse
+from fastapi import APIRouter, Depends, Request, Form
+from fastapi.responses import RedirectResponse, FileResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 from datetime import datetime, date
 from dateutil.relativedelta import relativedelta
-from typing import Optional
+from typing import Optional, List
 import os
+import re
 from app.database import get_db
 from app.models import User, DailyBalance, Employee, DailyEmployeeEntry
 from app.auth.jwt_handler import get_current_user
 from app.utils.csv_generator import generate_tip_report_csv, generate_consolidated_daily_balance_csv, generate_employee_tip_report_csv
 from app.utils.csv_reader import get_saved_tip_reports, parse_tip_report_csv, get_saved_daily_balance_reports, parse_daily_balance_csv
+from app.utils.email import send_report_emails
+
+def validate_email(email: str) -> bool:
+    pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+    return re.match(pattern, email) is not None
 
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
@@ -405,3 +411,386 @@ async def download_saved_tip_report(
         filename=filename,
         media_type="text/csv"
     )
+
+@router.get("/reports/api/admin-users")
+async def get_admin_users_for_email(
+    report_type: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    if not current_user:
+        return JSONResponse(
+            status_code=401,
+            content={"success": False, "message": "Unauthorized"}
+        )
+
+    admin_users = db.query(User).filter(
+        User.is_admin == True,
+        User.email.isnot(None),
+        User.email != ""
+    ).all()
+
+    users_data = []
+    for user in admin_users:
+        opt_in = False
+        if report_type == "daily" and user.opt_in_daily_reports:
+            opt_in = True
+        elif report_type == "tips" and user.opt_in_tip_reports:
+            opt_in = True
+
+        users_data.append({
+            "id": user.id,
+            "username": user.username,
+            "email": user.email,
+            "opt_in": opt_in
+        })
+
+    return JSONResponse(
+        status_code=200,
+        content={"success": True, "users": users_data}
+    )
+
+@router.post("/reports/daily-balance/email")
+async def email_daily_balance_report(
+    request: Request,
+    start_date: str = Form(...),
+    end_date: str = Form(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    if not current_user:
+        return JSONResponse(
+            status_code=401,
+            content={"success": False, "message": "Unauthorized"}
+        )
+
+    form_data = await request.form()
+    user_emails = form_data.getlist("user_emails[]")
+    additional_email = form_data.get("additional_email", "").strip()
+
+    email_list = []
+    for email in user_emails:
+        if email and validate_email(email):
+            email_list.append(email)
+
+    if additional_email and validate_email(additional_email):
+        email_list.append(additional_email)
+
+    if not email_list:
+        return JSONResponse(
+            status_code=400,
+            content={"success": False, "message": "No valid email addresses provided"}
+        )
+
+    try:
+        start_date_obj = datetime.strptime(start_date, "%Y-%m-%d").date()
+        end_date_obj = datetime.strptime(end_date, "%Y-%m-%d").date()
+    except ValueError:
+        return JSONResponse(
+            status_code=400,
+            content={"success": False, "message": "Invalid date format"}
+        )
+
+    filename = generate_consolidated_daily_balance_csv(db, start_date_obj, end_date_obj)
+
+    year = str(start_date_obj.year)
+    month = f"{start_date_obj.month:02d}"
+    filepath = os.path.join("data", "reports", "daily_report", year, month, filename)
+
+    if not os.path.exists(filepath):
+        return JSONResponse(
+            status_code=404,
+            content={"success": False, "message": "Report file not found"}
+        )
+
+    date_range = f"{start_date_obj.strftime('%B %d, %Y')} to {end_date_obj.strftime('%B %d, %Y')}"
+    subject = f"Daily Balance Report - {date_range}"
+
+    result = send_report_emails(
+        to_emails=email_list,
+        report_type="daily",
+        report_filepath=filepath,
+        subject=subject,
+        date_range=date_range
+    )
+
+    if result["success"]:
+        return JSONResponse(
+            status_code=200,
+            content=result
+        )
+    else:
+        return JSONResponse(
+            status_code=500,
+            content=result
+        )
+
+@router.post("/reports/daily-balance/email/{year}/{month}/{filename}")
+async def email_saved_daily_balance_report(
+    request: Request,
+    year: str,
+    month: str,
+    filename: str,
+    current_user: User = Depends(get_current_user)
+):
+    if not current_user:
+        return JSONResponse(
+            status_code=401,
+            content={"success": False, "message": "Unauthorized"}
+        )
+
+    form_data = await request.form()
+    user_emails = form_data.getlist("user_emails[]")
+    additional_email = form_data.get("additional_email", "").strip()
+
+    email_list = []
+    for email in user_emails:
+        if email and validate_email(email):
+            email_list.append(email)
+
+    if additional_email and validate_email(additional_email):
+        email_list.append(additional_email)
+
+    if not email_list:
+        return JSONResponse(
+            status_code=400,
+            content={"success": False, "message": "No valid email addresses provided"}
+        )
+
+    filepath = os.path.join("data", "reports", "daily_report", year, month, filename)
+
+    if not os.path.exists(filepath):
+        return JSONResponse(
+            status_code=404,
+            content={"success": False, "message": "Report file not found"}
+        )
+
+    subject = f"Daily Balance Report - {filename}"
+
+    result = send_report_emails(
+        to_emails=email_list,
+        report_type="daily",
+        report_filepath=filepath,
+        subject=subject
+    )
+
+    if result["success"]:
+        return JSONResponse(
+            status_code=200,
+            content=result
+        )
+    else:
+        return JSONResponse(
+            status_code=500,
+            content=result
+        )
+
+@router.post("/reports/tip-report/email")
+async def email_tip_report(
+    request: Request,
+    start_date: str = Form(...),
+    end_date: str = Form(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    if not current_user:
+        return JSONResponse(
+            status_code=401,
+            content={"success": False, "message": "Unauthorized"}
+        )
+
+    form_data = await request.form()
+    user_emails = form_data.getlist("user_emails[]")
+    additional_email = form_data.get("additional_email", "").strip()
+
+    email_list = []
+    for email in user_emails:
+        if email and validate_email(email):
+            email_list.append(email)
+
+    if additional_email and validate_email(additional_email):
+        email_list.append(additional_email)
+
+    if not email_list:
+        return JSONResponse(
+            status_code=400,
+            content={"success": False, "message": "No valid email addresses provided"}
+        )
+
+    try:
+        start_date_obj = datetime.strptime(start_date, "%Y-%m-%d").date()
+        end_date_obj = datetime.strptime(end_date, "%Y-%m-%d").date()
+    except ValueError:
+        return JSONResponse(
+            status_code=400,
+            content={"success": False, "message": "Invalid date format"}
+        )
+
+    filename = generate_tip_report_csv(db, start_date_obj, end_date_obj)
+    filepath = os.path.join("data/reports/tip_report", filename)
+
+    if not os.path.exists(filepath):
+        return JSONResponse(
+            status_code=404,
+            content={"success": False, "message": "Report file not found"}
+        )
+
+    date_range = f"{start_date_obj.strftime('%B %d, %Y')} to {end_date_obj.strftime('%B %d, %Y')}"
+    subject = f"Tip Report - {date_range}"
+
+    result = send_report_emails(
+        to_emails=email_list,
+        report_type="tips",
+        report_filepath=filepath,
+        subject=subject,
+        date_range=date_range
+    )
+
+    if result["success"]:
+        return JSONResponse(
+            status_code=200,
+            content=result
+        )
+    else:
+        return JSONResponse(
+            status_code=500,
+            content=result
+        )
+
+@router.post("/reports/tip-report/email/{filename}")
+async def email_saved_tip_report(
+    request: Request,
+    filename: str,
+    current_user: User = Depends(get_current_user)
+):
+    if not current_user:
+        return JSONResponse(
+            status_code=401,
+            content={"success": False, "message": "Unauthorized"}
+        )
+
+    form_data = await request.form()
+    user_emails = form_data.getlist("user_emails[]")
+    additional_email = form_data.get("additional_email", "").strip()
+
+    email_list = []
+    for email in user_emails:
+        if email and validate_email(email):
+            email_list.append(email)
+
+    if additional_email and validate_email(additional_email):
+        email_list.append(additional_email)
+
+    if not email_list:
+        return JSONResponse(
+            status_code=400,
+            content={"success": False, "message": "No valid email addresses provided"}
+        )
+
+    filepath = os.path.join("data/reports/tip_report", filename)
+
+    if not os.path.exists(filepath):
+        return JSONResponse(
+            status_code=404,
+            content={"success": False, "message": "Report file not found"}
+        )
+
+    subject = f"Tip Report - {filename}"
+
+    result = send_report_emails(
+        to_emails=email_list,
+        report_type="tips",
+        report_filepath=filepath,
+        subject=subject
+    )
+
+    if result["success"]:
+        return JSONResponse(
+            status_code=200,
+            content=result
+        )
+    else:
+        return JSONResponse(
+            status_code=500,
+            content=result
+        )
+
+@router.post("/reports/tip-report/employee/{employee_slug}/email")
+async def email_employee_tip_report(
+    request: Request,
+    employee_slug: str,
+    start_date: str = Form(...),
+    end_date: str = Form(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    if not current_user:
+        return JSONResponse(
+            status_code=401,
+            content={"success": False, "message": "Unauthorized"}
+        )
+
+    employee = db.query(Employee).filter(Employee.slug == employee_slug).first()
+    if not employee:
+        return JSONResponse(
+            status_code=404,
+            content={"success": False, "message": "Employee not found"}
+        )
+
+    form_data = await request.form()
+    user_emails = form_data.getlist("user_emails[]")
+    additional_email = form_data.get("additional_email", "").strip()
+
+    email_list = []
+    for email in user_emails:
+        if email and validate_email(email):
+            email_list.append(email)
+
+    if additional_email and validate_email(additional_email):
+        email_list.append(additional_email)
+
+    if not email_list:
+        return JSONResponse(
+            status_code=400,
+            content={"success": False, "message": "No valid email addresses provided"}
+        )
+
+    try:
+        start_date_obj = datetime.strptime(start_date, "%Y-%m-%d").date()
+        end_date_obj = datetime.strptime(end_date, "%Y-%m-%d").date()
+    except ValueError:
+        return JSONResponse(
+            status_code=400,
+            content={"success": False, "message": "Invalid date format"}
+        )
+
+    filename = generate_employee_tip_report_csv(db, employee, start_date_obj, end_date_obj)
+    filepath = os.path.join("data/reports/tip_report", filename)
+
+    if not os.path.exists(filepath):
+        return JSONResponse(
+            status_code=404,
+            content={"success": False, "message": "Report file not found"}
+        )
+
+    date_range = f"{start_date_obj.strftime('%B %d, %Y')} to {end_date_obj.strftime('%B %d, %Y')}"
+    subject = f"Tip Report for {employee.name} - {date_range}"
+
+    result = send_report_emails(
+        to_emails=email_list,
+        report_type="tips",
+        report_filepath=filepath,
+        subject=subject,
+        date_range=date_range
+    )
+
+    if result["success"]:
+        return JSONResponse(
+            status_code=200,
+            content=result
+        )
+    else:
+        return JSONResponse(
+            status_code=500,
+            content=result
+        )

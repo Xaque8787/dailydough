@@ -18,6 +18,8 @@ class User(Base):
     slug = Column(String, unique=True, index=True, nullable=False)
     email = Column(String, nullable=True)
     is_admin = Column(Boolean, default=False)
+    opt_in_daily_reports = Column(Boolean, default=False)
+    opt_in_tip_reports = Column(Boolean, default=False)
 
 class Position(Base):
     __tablename__ = "positions"

@@ -1,0 +1,460 @@
+import os
+from typing import List, Dict, Any
+from dotenv import load_dotenv
+import resend
+from app.utils.csv_reader import parse_tip_report_csv, parse_daily_balance_csv
+
+load_dotenv()
+
+resend.api_key = os.getenv("RESEND_API_KEY")
+
+def generate_tip_report_html(report_data: Dict[str, Any]) -> str:
+    html = """
+    <html>
+        <head>
+            <style>
+                body {
+                    font-family: Arial, sans-serif;
+                    line-height: 1.6;
+                    color: #333;
+                    max-width: 1200px;
+                    margin: 0 auto;
+                    padding: 20px;
+                }
+                h1 {
+                    color: #2c3e50;
+                    border-bottom: 3px solid #3498db;
+                    padding-bottom: 10px;
+                }
+                h2 {
+                    color: #2c3e50;
+                    margin-top: 30px;
+                    border-bottom: 2px solid #e9ecef;
+                    padding-bottom: 8px;
+                }
+                h3 {
+                    color: #495057;
+                    margin-top: 20px;
+                }
+                .date-range {
+                    background: #e3f2fd;
+                    padding: 10px 15px;
+                    border-radius: 5px;
+                    margin: 15px 0;
+                    font-weight: 500;
+                }
+                .employee-info {
+                    background: #f8f9fa;
+                    padding: 15px;
+                    border-radius: 5px;
+                    margin: 15px 0;
+                }
+                table {
+                    width: 100%;
+                    border-collapse: collapse;
+                    margin: 20px 0;
+                    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+                }
+                th {
+                    background: #3498db;
+                    color: white;
+                    padding: 12px 8px;
+                    text-align: left;
+                    font-weight: 600;
+                }
+                td {
+                    padding: 10px 8px;
+                    border-bottom: 1px solid #e9ecef;
+                }
+                tr:hover {
+                    background: #f8f9fa;
+                }
+                .summary-table {
+                    background: #fff;
+                }
+                .summary-table th {
+                    background: #2c3e50;
+                }
+                .total-row {
+                    background: #e3f2fd !important;
+                    font-weight: bold;
+                }
+                .highlight {
+                    background: #fff3cd;
+                }
+                .text-right {
+                    text-align: right;
+                }
+                .footer {
+                    margin-top: 40px;
+                    padding: 20px;
+                    background: #f8f9fa;
+                    border-left: 4px solid #3498db;
+                    font-size: 14px;
+                    color: #666;
+                }
+            </style>
+        </head>
+        <body>
+    """
+
+    html += f"<h1>{report_data.get('title', 'Employee Tip Report')}</h1>"
+
+    if report_data.get('date_range'):
+        html += f'<div class="date-range"><strong>Report Period:</strong> {report_data["date_range"]}</div>'
+
+    if report_data.get('is_employee_specific') and report_data.get('employee_name'):
+        html += f'''
+        <div class="employee-info">
+            <strong>Employee:</strong> {report_data["employee_name"]}<br>
+            <strong>Position:</strong> {report_data.get("employee_position", "N/A")}
+        </div>
+        '''
+
+    if report_data.get('summary'):
+        html += '<h2>Summary</h2>'
+        html += '<table class="summary-table"><thead><tr>'
+        html += '<th>Employee Name</th><th>Position</th><th>Bank Card Tips</th>'
+        html += '<th>Cash Tips</th><th>Adjustments</th><th>Tips on Paycheck</th>'
+        html += '<th>Tip Out</th><th>Take Home</th><th>Shifts</th>'
+        html += '</tr></thead><tbody>'
+
+        for entry in report_data['summary']:
+            html += '<tr>'
+            html += f'<td>{entry.get("employee_name", "")}</td>'
+            html += f'<td>{entry.get("position", "")}</td>'
+            html += f'<td class="text-right">{entry.get("bank_card_tips", "")}</td>'
+            html += f'<td class="text-right">{entry.get("cash_tips", "")}</td>'
+            html += f'<td class="text-right">{entry.get("adjustments", "")}</td>'
+            html += f'<td class="text-right">{entry.get("tips_on_paycheck", "")}</td>'
+            html += f'<td class="text-right">{entry.get("tip_out", "")}</td>'
+            html += f'<td class="text-right highlight"><strong>{entry.get("take_home", "")}</strong></td>'
+            html += f'<td class="text-right">{entry.get("num_shifts", "")}</td>'
+            html += '</tr>'
+
+        html += '</tbody></table>'
+
+    if report_data.get('details'):
+        html += '<h2>Daily Breakdown</h2>'
+
+        for detail in report_data['details']:
+            html += f'<h3>Employee: {detail.get("employee", "")}</h3>'
+            html += '<table><thead><tr>'
+            html += '<th>Date</th><th>Day</th><th>Bank Card Sales</th><th>Bank Card Tips</th>'
+            html += '<th>Total Sales</th><th>Cash Tips</th><th>Adjustments</th>'
+            html += '<th>Tips on Paycheck</th><th>Tip Out</th><th>Take Home</th>'
+            html += '</tr></thead><tbody>'
+
+            for entry in detail.get('entries', []):
+                html += '<tr>'
+                html += f'<td>{entry.get("date", "")}</td>'
+                html += f'<td>{entry.get("day", "")}</td>'
+                html += f'<td class="text-right">{entry.get("bank_card_sales", "")}</td>'
+                html += f'<td class="text-right">{entry.get("bank_card_tips", "")}</td>'
+                html += f'<td class="text-right">{entry.get("total_sales", "")}</td>'
+                html += f'<td class="text-right">{entry.get("cash_tips", "")}</td>'
+                html += f'<td class="text-right">{entry.get("adjustments", "")}</td>'
+                html += f'<td class="text-right">{entry.get("tips_on_paycheck", "")}</td>'
+                html += f'<td class="text-right">{entry.get("tip_out", "")}</td>'
+                html += f'<td class="text-right highlight"><strong>{entry.get("take_home", "")}</strong></td>'
+                html += '</tr>'
+
+            html += '</tbody></table>'
+
+    html += '''
+            <div class="footer">
+                <p style="margin: 0;">This is an automated email from your Management System.</p>
+                <p style="margin: 5px 0 0 0;">Please do not reply to this email.</p>
+            </div>
+        </body>
+    </html>
+    '''
+
+    return html
+
+def generate_daily_balance_html(report_data: Dict[str, Any]) -> str:
+    html = """
+    <html>
+        <head>
+            <style>
+                body {
+                    font-family: Arial, sans-serif;
+                    line-height: 1.6;
+                    color: #333;
+                    max-width: 1200px;
+                    margin: 0 auto;
+                    padding: 20px;
+                }
+                h1 {
+                    color: #2c3e50;
+                    border-bottom: 3px solid #3498db;
+                    padding-bottom: 10px;
+                }
+                h2 {
+                    color: #2c3e50;
+                    margin-top: 30px;
+                    background: #f8f9fa;
+                    padding: 10px 15px;
+                    border-left: 4px solid #3498db;
+                }
+                h3 {
+                    color: #495057;
+                    margin-top: 20px;
+                }
+                .date-range {
+                    background: #e3f2fd;
+                    padding: 10px 15px;
+                    border-radius: 5px;
+                    margin: 15px 0;
+                    font-weight: 500;
+                }
+                .daily-header {
+                    background: #2c3e50;
+                    color: white;
+                    padding: 15px;
+                    border-radius: 5px;
+                    margin: 30px 0 10px 0;
+                }
+                .notes {
+                    background: #fff3cd;
+                    padding: 10px 15px;
+                    border-left: 4px solid #ffc107;
+                    margin: 10px 0;
+                }
+                table {
+                    width: 100%;
+                    border-collapse: collapse;
+                    margin: 15px 0;
+                    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+                }
+                th {
+                    background: #3498db;
+                    color: white;
+                    padding: 10px 8px;
+                    text-align: left;
+                    font-weight: 600;
+                }
+                td {
+                    padding: 8px;
+                    border-bottom: 1px solid #e9ecef;
+                }
+                tr:hover {
+                    background: #f8f9fa;
+                }
+                .total-row {
+                    background: #e3f2fd !important;
+                    font-weight: bold;
+                }
+                .text-right {
+                    text-align: right;
+                }
+                .summary-grid {
+                    display: grid;
+                    grid-template-columns: repeat(3, 1fr);
+                    gap: 15px;
+                    margin: 20px 0;
+                }
+                .summary-card {
+                    background: white;
+                    padding: 15px;
+                    border: 1px solid #e9ecef;
+                    border-radius: 5px;
+                    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+                }
+                .summary-card h4 {
+                    margin: 0 0 5px 0;
+                    color: #6c757d;
+                    font-size: 14px;
+                }
+                .summary-card .value {
+                    font-size: 20px;
+                    font-weight: bold;
+                    color: #2c3e50;
+                }
+                .footer {
+                    margin-top: 40px;
+                    padding: 20px;
+                    background: #f8f9fa;
+                    border-left: 4px solid #3498db;
+                    font-size: 14px;
+                    color: #666;
+                }
+            </style>
+        </head>
+        <body>
+    """
+
+    html += f"<h1>{report_data.get('title', 'Consolidated Daily Balance Report')}</h1>"
+
+    if report_data.get('date_range'):
+        html += f'<div class="date-range"><strong>Report Period:</strong> {report_data["date_range"]}</div>'
+
+    for daily_report in report_data.get('daily_reports', []):
+        html += f'''
+        <div class="daily-header">
+            <h2 style="margin: 0; color: white; background: transparent; padding: 0; border: none;">
+                Date: {daily_report.get("date", "")} - {daily_report.get("day_of_week", "")}
+            </h2>
+        </div>
+        '''
+
+        if daily_report.get('notes'):
+            html += f'<div class="notes"><strong>Notes:</strong> {daily_report["notes"]}</div>'
+
+        html += '<div class="summary-grid">'
+        html += f'''
+        <div class="summary-card">
+            <h4>Total Revenue</h4>
+            <div class="value">{daily_report.get("revenue_total", "0.00")}</div>
+        </div>
+        <div class="summary-card">
+            <h4>Total Expenses</h4>
+            <div class="value">{daily_report.get("expense_total", "0.00")}</div>
+        </div>
+        <div class="summary-card">
+            <h4>Cash Over/Under</h4>
+            <div class="value">{daily_report.get("cash_over_under", "0.00")}</div>
+        </div>
+        '''
+        html += '</div>'
+
+        if daily_report.get('revenue_items'):
+            html += '<h3>Revenue & Income</h3>'
+            html += '<table><thead><tr><th>Item</th><th class="text-right">Amount</th></tr></thead><tbody>'
+            for item in daily_report['revenue_items']:
+                html += f'<tr><td>{item["name"]}</td><td class="text-right">{item["value"]}</td></tr>'
+            html += f'<tr class="total-row"><td>Total Revenue</td><td class="text-right">{daily_report.get("revenue_total", "")}</td></tr>'
+            html += '</tbody></table>'
+
+        if daily_report.get('expense_items'):
+            html += '<h3>Deposits & Expenses</h3>'
+            html += '<table><thead><tr><th>Item</th><th class="text-right">Amount</th></tr></thead><tbody>'
+            for item in daily_report['expense_items']:
+                html += f'<tr><td>{item["name"]}</td><td class="text-right">{item["value"]}</td></tr>'
+            html += f'<tr class="total-row"><td>Total Expenses</td><td class="text-right">{daily_report.get("expense_total", "")}</td></tr>'
+            html += '</tbody></table>'
+
+        if daily_report.get('employees'):
+            html += '<h3>Employee Breakdown</h3>'
+            html += '<table><thead><tr>'
+            html += '<th>Employee</th><th>Position</th><th>Bank Card Sales</th><th>Bank Card Tips</th>'
+            html += '<th>Cash Tips</th><th>Total Sales</th><th>Adjustments</th>'
+            html += '<th>Tips on Paycheck</th><th>Tip Out</th><th>Take Home</th>'
+            html += '</tr></thead><tbody>'
+
+            for emp in daily_report['employees']:
+                html += '<tr>'
+                html += f'<td>{emp.get("name", "")}</td>'
+                html += f'<td>{emp.get("position", "")}</td>'
+                html += f'<td class="text-right">{emp.get("bank_card_sales", "")}</td>'
+                html += f'<td class="text-right">{emp.get("bank_card_tips", "")}</td>'
+                html += f'<td class="text-right">{emp.get("cash_tips", "")}</td>'
+                html += f'<td class="text-right">{emp.get("total_sales", "")}</td>'
+                html += f'<td class="text-right">{emp.get("adjustments", "")}</td>'
+                html += f'<td class="text-right">{emp.get("tips_on_paycheck", "")}</td>'
+                html += f'<td class="text-right">{emp.get("tip_out", "")}</td>'
+                html += f'<td class="text-right">{emp.get("take_home", "")}</td>'
+                html += '</tr>'
+
+            html += '</tbody></table>'
+
+    html += '''
+            <div class="footer">
+                <p style="margin: 0;">This is an automated email from your Management System.</p>
+                <p style="margin: 5px 0 0 0;">Please do not reply to this email.</p>
+            </div>
+        </body>
+    </html>
+    '''
+
+    return html
+
+def send_report_emails(
+    to_emails: List[str],
+    report_type: str,
+    report_filepath: str,
+    subject: str,
+    date_range: str = None
+) -> dict:
+    if not resend.api_key:
+        return {
+            "success": False,
+            "message": "RESEND_API_KEY is not configured in environment variables"
+        }
+
+    if not to_emails or len(to_emails) == 0:
+        return {
+            "success": False,
+            "message": "No email addresses provided"
+        }
+
+    if report_type not in ["daily", "tips"]:
+        return {
+            "success": False,
+            "message": f"Invalid report type: {report_type}"
+        }
+
+    from_email = os.getenv(
+        "RESEND_FROM_EMAIL_DAILY" if report_type == "daily" else "RESEND_FROM_EMAIL_TIPS",
+        f"{report_type}@reports.pospiros.pizza"
+    )
+
+    if not os.path.exists(report_filepath):
+        return {
+            "success": False,
+            "message": f"Report file not found: {report_filepath}"
+        }
+
+    if report_type == "tips":
+        report_data = parse_tip_report_csv(report_filepath)
+        if not report_data:
+            return {
+                "success": False,
+                "message": "Failed to parse tip report"
+            }
+        html_body = generate_tip_report_html(report_data)
+    else:
+        report_data = parse_daily_balance_csv(report_filepath)
+        if not report_data:
+            return {
+                "success": False,
+                "message": "Failed to parse daily balance report"
+            }
+        html_body = generate_daily_balance_html(report_data)
+
+    successful_sends = []
+    failed_sends = []
+
+    for email in to_emails:
+        params = {
+            "from": from_email,
+            "to": [email],
+            "subject": subject,
+            "html": html_body
+        }
+
+        try:
+            response = resend.Emails.send(params)
+            successful_sends.append(email)
+        except Exception as e:
+            failed_sends.append({"email": email, "error": str(e)})
+
+    if len(successful_sends) > 0 and len(failed_sends) == 0:
+        return {
+            "success": True,
+            "message": f"Report sent successfully to {len(successful_sends)} recipient(s)",
+            "successful": successful_sends
+        }
+    elif len(successful_sends) > 0:
+        return {
+            "success": True,
+            "message": f"Report sent to {len(successful_sends)} recipient(s), {len(failed_sends)} failed",
+            "successful": successful_sends,
+            "failed": failed_sends
+        }
+    else:
+        return {
+            "success": False,
+            "message": f"Failed to send emails to all recipients",
+            "failed": failed_sends
+        }
