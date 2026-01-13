@@ -57,7 +57,7 @@
                     <tbody>
                         {% for template in financial_templates %}
                             {% if template.category == 'revenue' %}
-                        <tr data-template-id="{{ template.id }}" data-template-name="{{ template.name }}" data-is-deduction="{{ template.is_deduction|lower }}" data-is-starting-till="{{ template.is_starting_till|lower }}">
+                        <tr data-template-id="{{ template.id }}" data-template-name="{{ template.name }}" data-is-deduction="{{ template.is_deduction|lower }}" data-is-starting-till="{{ template.is_starting_till|lower }}" data-is-ending-till="{{ template.is_ending_till|lower }}">
                             <td>
                                 <span class="item-name-display" id="name-display-{{ template.id }}">
                                     {{ template.name }}
@@ -66,6 +66,9 @@
                                     {% endif %}
                                     {% if template.is_starting_till %}
                                     <span style="color: #2563eb; font-weight: bold;" title="Auto-populated from previous day"> (⟲)</span>
+                                    {% endif %}
+                                    {% if template.is_ending_till %}
+                                    <span style="color: #059669; font-weight: bold;" title="Ending till for next day"> (⤵)</span>
                                     {% endif %}
                                 </span>
                                 <input type="text" class="item-name-edit" id="name-edit-{{ template.id }}" value="{{ template.name }}" style="display: none;">
@@ -90,6 +93,10 @@
                                     <label style="display: inline-flex; align-items: center; gap: 4px; margin-left: 8px;">
                                         <input type="checkbox" onchange="toggleStartingTill({{ template.id }}, 'revenue', this.checked)" {% if template.is_starting_till %}checked{% endif %} title="Auto-populate from previous day">
                                         <span style="font-size: 12px;">Starting Till</span>
+                                    </label>
+                                    <label style="display: inline-flex; align-items: center; gap: 4px; margin-left: 8px;">
+                                        <input type="checkbox" onchange="toggleEndingTill({{ template.id }}, 'revenue', this.checked)" {% if template.is_ending_till %}checked{% endif %} title="Ending till for next day">
+                                        <span style="font-size: 12px;">Ending Till</span>
                                     </label>
                                 </span>
                                 {% endif %}
@@ -141,7 +148,7 @@
                     <tbody>
                         {% for template in financial_templates %}
                             {% if template.category == 'expense' %}
-                        <tr data-template-id="{{ template.id }}" data-template-name="{{ template.name }}" data-is-deduction="{{ template.is_deduction|lower }}" data-is-starting-till="{{ template.is_starting_till|lower }}">
+                        <tr data-template-id="{{ template.id }}" data-template-name="{{ template.name }}" data-is-deduction="{{ template.is_deduction|lower }}" data-is-starting-till="{{ template.is_starting_till|lower }}" data-is-ending-till="{{ template.is_ending_till|lower }}">
                             <td>
                                 <span class="item-name-display" id="name-display-{{ template.id }}">
                                     {{ template.name }}
@@ -150,6 +157,9 @@
                                     {% endif %}
                                     {% if template.is_starting_till %}
                                     <span style="color: #2563eb; font-weight: bold;" title="Auto-populated from previous day"> (⟲)</span>
+                                    {% endif %}
+                                    {% if template.is_ending_till %}
+                                    <span style="color: #059669; font-weight: bold;" title="Ending till for next day"> (⤵)</span>
                                     {% endif %}
                                 </span>
                                 <input type="text" class="item-name-edit" id="name-edit-{{ template.id }}" value="{{ template.name }}" style="display: none;">
@@ -174,6 +184,10 @@
                                     <label style="display: inline-flex; align-items: center; gap: 4px; margin-left: 8px;">
                                         <input type="checkbox" onchange="toggleStartingTill({{ template.id }}, 'expense', this.checked)" {% if template.is_starting_till %}checked{% endif %} title="Auto-populate from previous day">
                                         <span style="font-size: 12px;">Starting Till</span>
+                                    </label>
+                                    <label style="display: inline-flex; align-items: center; gap: 4px; margin-left: 8px;">
+                                        <input type="checkbox" onchange="toggleEndingTill({{ template.id }}, 'expense', this.checked)" {% if template.is_ending_till %}checked{% endif %} title="Ending till for next day">
+                                        <span style="font-size: 12px;">Ending Till</span>
                                     </label>
                                 </span>
                                 {% endif %}
@@ -833,6 +847,7 @@ async function toggleDeduction(templateId, category, isDeduction) {
     const row = document.querySelector(`#${tableId} tr[data-template-id="${templateId}"]`);
     const templateName = row.dataset.templateName;
     const isStartingTill = row.dataset.isStartingTill === 'true';
+    const isEndingTill = row.dataset.isEndingTill === 'true';
 
     try {
         const response = await fetch(`/api/financial-items/templates/${templateId}`, {
@@ -843,7 +858,8 @@ async function toggleDeduction(templateId, category, isDeduction) {
             body: JSON.stringify({
                 name: templateName,
                 is_deduction: isDeduction,
-                is_starting_till: isStartingTill
+                is_starting_till: isStartingTill,
+                is_ending_till: isEndingTill
             })
         });
 
@@ -884,6 +900,7 @@ async function toggleStartingTill(templateId, category, isStartingTill) {
     const row = document.querySelector(`#${tableId} tr[data-template-id="${templateId}"]`);
     const templateName = row.dataset.templateName;
     const isDeduction = row.dataset.isDeduction === 'true';
+    const isEndingTill = row.dataset.isEndingTill === 'true';
 
     try {
         const response = await fetch(`/api/financial-items/templates/${templateId}`, {
@@ -894,7 +911,8 @@ async function toggleStartingTill(templateId, category, isStartingTill) {
             body: JSON.stringify({
                 name: templateName,
                 is_deduction: isDeduction,
-                is_starting_till: isStartingTill
+                is_starting_till: isStartingTill,
+                is_ending_till: isEndingTill
             })
         });
 
@@ -917,7 +935,7 @@ async function toggleStartingTill(templateId, category, isStartingTill) {
 
             const input = row.querySelector('input[type="number"]');
             if (input && !input.value || parseFloat(input.value) === 0) {
-                const previousTotal = parseFloat('{{ previous_expense_total }}') || 0;
+                const previousTotal = parseFloat('{{ previous_ending_till }}') || 0;
                 input.value = previousTotal.toFixed(2);
                 calculateFinancialTotals();
             }
@@ -931,6 +949,57 @@ async function toggleStartingTill(templateId, category, isStartingTill) {
         const checkbox = row.querySelectorAll('input[type="checkbox"]')[1];
         if (checkbox) {
             checkbox.checked = !isStartingTill;
+        }
+    }
+}
+
+async function toggleEndingTill(templateId, category, isEndingTill) {
+    const tableId = category === 'revenue' ? 'revenue-table' : 'expense-table';
+    const row = document.querySelector(`#${tableId} tr[data-template-id="${templateId}"]`);
+    const templateName = row.dataset.templateName;
+    const isDeduction = row.dataset.isDeduction === 'true';
+    const isStartingTill = row.dataset.isStartingTill === 'true';
+
+    try {
+        const response = await fetch(`/api/financial-items/templates/${templateId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                name: templateName,
+                is_deduction: isDeduction,
+                is_starting_till: isStartingTill,
+                is_ending_till: isEndingTill
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to update ending till status');
+        }
+
+        row.dataset.isEndingTill = isEndingTill;
+
+        const nameDisplay = row.querySelector(`#name-display-${templateId}`);
+        const existingEndingTillIndicator = nameDisplay.querySelector('span[title="Ending till for next day"]');
+
+        if (isEndingTill && !existingEndingTillIndicator) {
+            const indicator = document.createElement('span');
+            indicator.style.color = '#059669';
+            indicator.style.fontWeight = 'bold';
+            indicator.title = 'Ending till for next day';
+            indicator.textContent = ' (⤵)';
+            nameDisplay.appendChild(indicator);
+        } else if (!isEndingTill && existingEndingTillIndicator) {
+            existingEndingTillIndicator.remove();
+        }
+
+    } catch (error) {
+        console.error('Error toggling ending till:', error);
+        alert('Failed to update ending till status. Please try again.');
+        const checkbox = row.querySelectorAll('input[type="checkbox"]')[2];
+        if (checkbox) {
+            checkbox.checked = !isEndingTill;
         }
     }
 }
@@ -1070,14 +1139,14 @@ document.addEventListener('DOMContentLoaded', function() {
         attachEmployeeInputListeners(entry);
     });
 
-    const previousExpenseTotal = parseFloat('{{ previous_expense_total }}') || 0;
+    const previousEndingTill = parseFloat('{{ previous_ending_till }}') || 0;
     const hasDailyBalance = {{ 'true' if daily_balance else 'false' }};
 
-    if (!hasDailyBalance && previousExpenseTotal > 0) {
+    if (!hasDailyBalance && previousEndingTill > 0) {
         document.querySelectorAll('#revenue-table tr[data-is-starting-till="true"], #expense-table tr[data-is-starting-till="true"]').forEach(row => {
             const input = row.querySelector('input[type="number"]');
             if (input) {
-                input.value = previousExpenseTotal.toFixed(2);
+                input.value = previousEndingTill.toFixed(2);
             }
         });
     }

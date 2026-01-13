@@ -196,17 +196,16 @@ async def daily_balance_page(
     previous_date = target_date - timedelta(days=1)
     previous_daily_balance = db.query(DailyBalance).filter(DailyBalance.date == previous_date).first()
 
-    previous_expense_total = 0.0
+    previous_ending_till = 0.0
     if previous_daily_balance:
         for item in previous_daily_balance.financial_line_items:
-            if item.category == "expense":
+            if item.template_id:
                 template = db.query(FinancialLineItemTemplate).filter(
                     FinancialLineItemTemplate.id == item.template_id
                 ).first()
-                if template and template.is_deduction:
-                    previous_expense_total -= item.value
-                else:
-                    previous_expense_total += item.value
+                if template and template.is_ending_till:
+                    previous_ending_till = item.value
+                    break
 
     return templates.TemplateResponse(
         "daily_balance/form.html",
@@ -224,7 +223,7 @@ async def daily_balance_page(
             "edit_mode": edit,
             "financial_templates": templates_list,
             "financial_line_items": financial_line_items,
-            "previous_expense_total": previous_expense_total
+            "previous_ending_till": previous_ending_till
         }
     )
 

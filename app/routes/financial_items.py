@@ -14,11 +14,13 @@ class FinancialLineItemTemplateCreate(BaseModel):
     category: str
     is_deduction: bool = False
     is_starting_till: bool = False
+    is_ending_till: bool = False
 
 class FinancialLineItemTemplateUpdate(BaseModel):
     name: str
     is_deduction: bool = False
     is_starting_till: bool = False
+    is_ending_till: bool = False
 
 @router.get("/api/financial-items/templates")
 async def get_templates(
@@ -31,12 +33,12 @@ async def get_templates(
     ).all()
 
     revenue_items = [
-        {"id": t.id, "name": t.name, "display_order": t.display_order, "is_default": t.is_default, "is_deduction": t.is_deduction, "is_starting_till": t.is_starting_till}
+        {"id": t.id, "name": t.name, "display_order": t.display_order, "is_default": t.is_default, "is_deduction": t.is_deduction, "is_starting_till": t.is_starting_till, "is_ending_till": t.is_ending_till}
         for t in templates if t.category == "revenue"
     ]
 
     expense_items = [
-        {"id": t.id, "name": t.name, "display_order": t.display_order, "is_default": t.is_default, "is_deduction": t.is_deduction, "is_starting_till": t.is_starting_till}
+        {"id": t.id, "name": t.name, "display_order": t.display_order, "is_default": t.is_default, "is_deduction": t.is_deduction, "is_starting_till": t.is_starting_till, "is_ending_till": t.is_ending_till}
         for t in templates if t.category == "expense"
     ]
 
@@ -61,7 +63,8 @@ async def create_template(
         display_order=max_order,
         is_default=False,
         is_deduction=template.is_deduction,
-        is_starting_till=template.is_starting_till
+        is_starting_till=template.is_starting_till,
+        is_ending_till=template.is_ending_till
     )
 
     db.add(new_template)
@@ -75,7 +78,8 @@ async def create_template(
         "display_order": new_template.display_order,
         "is_default": new_template.is_default,
         "is_deduction": new_template.is_deduction,
-        "is_starting_till": new_template.is_starting_till
+        "is_starting_till": new_template.is_starting_till,
+        "is_ending_till": new_template.is_ending_till
     }
 
 @router.put("/api/financial-items/templates/{template_id}")
@@ -98,6 +102,7 @@ async def update_template(
     db_template.name = template.name
     db_template.is_deduction = template.is_deduction
     db_template.is_starting_till = template.is_starting_till
+    db_template.is_ending_till = template.is_ending_till
     db.commit()
 
     return {"success": True}
