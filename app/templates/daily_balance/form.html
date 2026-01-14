@@ -285,7 +285,7 @@
             {% for emp in working_employees %}
             <div class="employee-entry" id="entry-{{ emp.id }}" data-employee-id="{{ emp.id }}">
                 <div class="employee-entry-header">
-                    <h4>{{ emp.name }} - {{ emp.position.name }}</h4>
+                    <h4>{{ emp.display_name }} - {{ emp.position.name }}</h4>
                     {% if not (daily_balance and daily_balance.finalized and not edit_mode) %}
                     <button type="button" class="btn-icon btn-remove" onclick="removeEmployee({{ emp.id }})" title="Remove employee">
                         <span class="icon">−</span>
@@ -406,7 +406,7 @@ function updateAddEmployeeDropdown() {
         if (!currentEmployeeIds.has(emp.id)) {
             const option = document.createElement('option');
             option.value = emp.id;
-            option.textContent = `${emp.name} (${emp.position.name})`;
+            option.textContent = `${emp.display_name} (${emp.position.name})`;
             option.dataset.employee = JSON.stringify(emp);
             select.appendChild(option);
         }
@@ -489,7 +489,7 @@ function addEmployeeEntry(emp) {
 
     entryDiv.innerHTML = `
         <div class="employee-entry-header">
-            <h4>${emp.name} - ${emp.position.name}</h4>
+            <h4>${emp.display_name} - ${emp.position.name}</h4>
             <button type="button" class="btn-icon btn-remove" onclick="removeEmployee(${emp.id})" title="Remove employee">
                 <span class="icon">−</span>
             </button>
@@ -559,7 +559,7 @@ function updateEmployeeTipsInFinancialTables() {
 
     employeeEntries.forEach(entry => {
         const employeeId = entry.dataset.employeeId;
-        const employeeName = entry.querySelector('.employee-entry-header h4').textContent.split(' - ')[0];
+        const employeeDisplayName = entry.querySelector('.employee-entry-header h4').textContent.split(' - ')[0];
         const tipInputs = entry.querySelectorAll('.tip-input');
 
         tipInputs.forEach(input => {
@@ -576,7 +576,7 @@ function updateEmployeeTipsInFinancialTables() {
                 newRow.dataset.employeeTip = employeeId;
                 newRow.dataset.isDeduction = revenueIsDeduction;
                 newRow.innerHTML = `
-                    <td><label>${employeeName} - ${fieldName}</label></td>
+                    <td><label>${employeeDisplayName} - ${fieldName}</label></td>
                     <td>
                         <input type="number" step="0.01" readonly class="table1-field calculated-field" value="${value.toFixed(2)}">
                     </td>
@@ -590,7 +590,7 @@ function updateEmployeeTipsInFinancialTables() {
                 newRow.dataset.employeeTip = employeeId;
                 newRow.dataset.isDeduction = expenseIsDeduction;
                 newRow.innerHTML = `
-                    <td><label>${employeeName} - ${fieldName}</label></td>
+                    <td><label>${employeeDisplayName} - ${fieldName}</label></td>
                     <td>
                         <input type="number" step="0.01" readonly class="table2-field calculated-field" value="${value.toFixed(2)}">
                     </td>

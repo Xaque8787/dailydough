@@ -1,10 +1,10 @@
 {% extends "base.html" %}
 
-{% block title %}{{ employee.name }} - Management System{% endblock %}
+{% block title %}{{ employee.display_name }} - Management System{% endblock %}
 
 {% block content %}
 <div class="page-header">
-    <h2>{{ employee.name }}</h2>
+    <h2>{{ employee.display_name }}</h2>
     <div>
         <a href="/employees/{{ employee.slug }}/edit" class="btn btn-primary">Edit</a>
         <a href="/employees" class="btn btn-secondary">Back to Employees</a>
@@ -14,7 +14,17 @@
 <div class="detail-card">
     <div class="detail-row">
         <strong>Name:</strong>
-        <span>{{ employee.name }}</span>
+        <span>{{ employee.display_name }}</span>
+    </div>
+
+    <div class="detail-row">
+        <strong>First Name:</strong>
+        <span>{{ employee.first_name }}</span>
+    </div>
+
+    <div class="detail-row">
+        <strong>Last Name:</strong>
+        <span>{{ employee.last_name }}</span>
     </div>
 
     <div class="detail-row">

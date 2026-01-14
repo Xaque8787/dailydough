@@ -21,7 +21,7 @@
         <tbody>
             {% for employee in employees %}
             <tr>
-                <td><a href="/employees/{{ employee.slug }}">{{ employee.name }}</a></td>
+                <td><a href="/employees/{{ employee.slug }}">{{ employee.display_name }}</a></td>
                 <td>{{ employee.position.name }}</td>
                 <td>{{ employee.scheduled_days|join(', ') if employee.scheduled_days else 'None' }}</td>
                 <td>

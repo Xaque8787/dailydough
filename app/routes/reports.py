@@ -202,9 +202,13 @@ async def tip_report_page(
     employees_query = db.query(Employee)
 
     if search:
-        employees_query = employees_query.filter(Employee.name.ilike(f"%{search}%"))
+        employees_query = employees_query.filter(
+            (Employee.name.ilike(f"%{search}%")) |
+            (Employee.first_name.ilike(f"%{search}%")) |
+            (Employee.last_name.ilike(f"%{search}%"))
+        )
 
-    employees = employees_query.order_by(Employee.name).all()
+    employees = employees_query.order_by(Employee.last_name, Employee.first_name).all()
 
     for emp in employees:
         entry_count = db.query(DailyEmployeeEntry).filter(
@@ -797,7 +801,7 @@ async def email_employee_tip_report(
         )
 
     date_range = f"{start_date_obj.strftime('%B %d, %Y')} to {end_date_obj.strftime('%B %d, %Y')}"
-    subject = f"Tip Report for {employee.name} - {date_range}"
+    subject = f"Tip Report for {employee.display_name} - {date_range}"
 
     result = send_report_emails(
         to_emails=email_list,

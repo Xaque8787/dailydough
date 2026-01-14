@@ -73,7 +73,7 @@ def generate_daily_balance_csv(daily_balance: DailyBalance, employee_entries: Li
 
         for entry in employee_entries:
             writer.writerow([
-                entry.employee.name,
+                entry.employee.display_name,
                 entry.employee.position.name,
                 f"${entry.bank_card_sales:.2f}",
                 f"${entry.bank_card_tips:.2f}",
@@ -135,7 +135,7 @@ def generate_tip_report_csv(db: Session, start_date: date, end_date: date) -> st
                 num_shifts = len(entries)
 
                 writer.writerow([
-                    employee.name,
+                    employee.display_name,
                     employee.position.name,
                     f"${total_bank_card_tips:.2f}",
                     f"${total_cash_tips:.2f}",
@@ -160,7 +160,7 @@ def generate_tip_report_csv(db: Session, start_date: date, end_date: date) -> st
             ).order_by(DailyBalance.date).all()
 
             if entries:
-                writer.writerow([f"Employee: {employee.name} - {employee.position.name}"])
+                writer.writerow([f"Employee: {employee.display_name} - {employee.position.name}"])
                 writer.writerow([
                     "Date",
                     "Day",
@@ -281,7 +281,7 @@ def generate_consolidated_daily_balance_csv(db: Session, start_date: date, end_d
 
             for entry in daily_balance.employee_entries:
                 writer.writerow([
-                    entry.employee.name,
+                    entry.employee.display_name,
                     entry.employee.position.name,
                     f"${entry.bank_card_sales:.2f}",
                     f"${entry.bank_card_tips:.2f}",
@@ -337,7 +337,7 @@ def generate_employee_tip_report_csv(db: Session, employee: Employee, start_date
         writer = csv.writer(csvfile)
 
         writer.writerow(["Employee Tip Report"])
-        writer.writerow(["Employee", employee.name])
+        writer.writerow(["Employee", employee.display_name])
         writer.writerow(["Position", employee.position.name])
         writer.writerow(["Date Range", f"{start_date} to {end_date}"])
         writer.writerow([])

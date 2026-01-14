@@ -38,16 +38,20 @@ async def new_employee_page(
 @router.post("/employees/new")
 async def create_employee(
     request: Request,
-    name: str = Form(...),
+    first_name: str = Form(...),
+    last_name: str = Form(...),
     position_id: int = Form(...),
     scheduled_days: List[str] = Form([]),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    slug = ensure_unique_slug(db, Employee, create_slug(name))
+    full_name = f"{last_name}, {first_name}"
+    slug = ensure_unique_slug(db, Employee, create_slug(full_name))
 
     new_employee = Employee(
-        name=name,
+        name=full_name,
+        first_name=first_name,
+        last_name=last_name,
         slug=slug,
         position_id=position_id,
         scheduled_days=scheduled_days
@@ -94,7 +98,8 @@ async def edit_employee_page(
 async def update_employee(
     slug: str,
     request: Request,
-    name: str = Form(...),
+    first_name: str = Form(...),
+    last_name: str = Form(...),
     position_id: int = Form(...),
     scheduled_days: List[str] = Form([]),
     db: Session = Depends(get_db),
@@ -104,7 +109,10 @@ async def update_employee(
     if not employee:
         raise HTTPException(status_code=404, detail="Employee not found")
 
-    employee.name = name
+    full_name = f"{last_name}, {first_name}"
+    employee.name = full_name
+    employee.first_name = first_name
+    employee.last_name = last_name
     employee.position_id = position_id
     employee.scheduled_days = scheduled_days
 

@@ -1,13 +1,13 @@
 {% extends "base.html" %}
 
-{% block title %}{{ employee.name }} - Tip Report{% endblock %}
+{% block title %}{{ employee.display_name }} - Tip Report{% endblock %}
 
 {% block content %}
 <div class="container">
     <div class="page-header">
         <div>
             <a href="/reports/tip-report" class="breadcrumb">← Back to Tip Reports</a>
-            <h1>{{ employee.name }} - {{ employee.position.name }}</h1>
+            <h1>{{ employee.display_name }} - {{ employee.position.name }}</h1>
         </div>
         <button type="button" class="btn btn-primary" onclick="openExportModal()">
             Export Report
@@ -114,8 +114,8 @@
 
 <div id="export-modal" class="modal">
     <div class="modal-content">
-        <h3>Export {{ employee.name }}'s Tip Report</h3>
-        <p>Select a date range to export a tip report for {{ employee.name }}.</p>
+        <h3>Export {{ employee.display_name }}'s Tip Report</h3>
+        <p>Select a date range to export a tip report for {{ employee.display_name }}.</p>
 
         <div class="export-options">
             <div class="form-group">

@@ -88,7 +88,7 @@ def save_daily_balance_data(
                     tip_line_item = DailyFinancialLineItem(
                         daily_balance_id=daily_balance.id,
                         template_id=None,
-                        name=f"{employee.name} - {req.name}",
+                        name=f"{employee.display_name} - {req.name}",
                         category="revenue",
                         value=value if not req.revenue_is_deduction else -value,
                         display_order=max_order,
@@ -102,7 +102,7 @@ def save_daily_balance_data(
                     tip_line_item = DailyFinancialLineItem(
                         daily_balance_id=daily_balance.id,
                         template_id=None,
-                        name=f"{employee.name} - {req.name}",
+                        name=f"{employee.display_name} - {req.name}",
                         category="expense",
                         value=value if not req.expense_is_deduction else -value,
                         display_order=max_order,
@@ -165,6 +165,7 @@ def serialize_employee(emp, db):
     return {
         "id": emp.id,
         "name": emp.name,
+        "display_name": emp.display_name,
         "position": {
             "id": emp.position.id,
             "name": emp.position.name,

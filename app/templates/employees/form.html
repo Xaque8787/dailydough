@@ -4,15 +4,20 @@
 
 {% block content %}
 <div class="page-header">
-    <h2>{% if employee %}Edit Employee: {{ employee.name }}{% else %}Add New Employee{% endif %}</h2>
+    <h2>{% if employee %}Edit Employee: {{ employee.display_name }}{% else %}Add New Employee{% endif %}</h2>
     <a href="/employees" class="btn btn-secondary">Back to Employees</a>
 </div>
 
 <div class="form-container">
     <form method="POST" action="{% if employee %}/employees/{{ employee.slug }}/edit{% else %}/employees/new{% endif %}">
         <div class="form-group">
-            <label for="name">Full Name</label>
-            <input type="text" id="name" name="name" value="{% if employee %}{{ employee.name }}{% endif %}" required>
+            <label for="first_name">First Name</label>
+            <input type="text" id="first_name" name="first_name" value="{% if employee %}{{ employee.first_name }}{% endif %}" required>
+        </div>
+
+        <div class="form-group">
+            <label for="last_name">Last Name</label>
+            <input type="text" id="last_name" name="last_name" value="{% if employee %}{{ employee.last_name }}{% endif %}" required>
         </div>
 
         <div class="form-group">

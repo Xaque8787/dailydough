@@ -64,12 +64,25 @@ class Employee(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, nullable=False)
+    first_name = Column(String, nullable=True)
+    last_name = Column(String, nullable=True)
     slug = Column(String, unique=True, index=True, nullable=False)
     position_id = Column(Integer, ForeignKey("positions.id"), nullable=False)
     scheduled_days = Column(JSON, default=list)
 
     position = relationship("Position", back_populates="employees")
     daily_entries = relationship("DailyEmployeeEntry", back_populates="employee")
+
+    @property
+    def display_name(self):
+        """Return employee name in 'Last, First' format."""
+        if self.last_name and self.first_name:
+            return f"{self.last_name}, {self.first_name}"
+        elif self.last_name:
+            return self.last_name
+        elif self.first_name:
+            return self.first_name
+        return self.name
 
 class DailyBalance(Base):
     __tablename__ = "daily_balance"
