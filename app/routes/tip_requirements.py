@@ -21,6 +21,7 @@ async def create_tip_requirement(
     no_input: Optional[str] = Form(None),
     no_null_value: Optional[str] = Form(None),
     record_data: Optional[str] = Form(None),
+    include_in_payroll_summary: Optional[str] = Form(None),
     apply_to_revenue: Optional[str] = Form(None),
     revenue_type: Optional[str] = Form("addition"),
     apply_to_expense: Optional[str] = Form(None),
@@ -41,6 +42,7 @@ async def create_tip_requirement(
         no_input=no_input == "true",
         no_null_value=no_null_value == "true",
         record_data=record_data == "true",
+        include_in_payroll_summary=include_in_payroll_summary == "true",
         apply_to_revenue=apply_to_revenue == "true",
         revenue_is_deduction=revenue_type == "deduction",
         apply_to_expense=apply_to_expense == "true",
@@ -71,6 +73,7 @@ async def get_tip_requirement_data(
         "no_input": requirement.no_input,
         "no_null_value": requirement.no_null_value,
         "record_data": requirement.record_data,
+        "include_in_payroll_summary": requirement.include_in_payroll_summary,
         "apply_to_revenue": requirement.apply_to_revenue,
         "revenue_is_deduction": requirement.revenue_is_deduction,
         "apply_to_expense": requirement.apply_to_expense,
@@ -88,6 +91,7 @@ async def update_tip_requirement(
     no_input: Optional[str] = Form(None),
     no_null_value: Optional[str] = Form(None),
     record_data: Optional[str] = Form(None),
+    include_in_payroll_summary: Optional[str] = Form(None),
     apply_to_revenue: Optional[str] = Form(None),
     revenue_type: Optional[str] = Form("addition"),
     apply_to_expense: Optional[str] = Form(None),
@@ -110,6 +114,7 @@ async def update_tip_requirement(
     requirement.no_input = no_input == "true"
     requirement.no_null_value = no_null_value == "true"
     requirement.record_data = record_data == "true"
+    requirement.include_in_payroll_summary = include_in_payroll_summary == "true"
     requirement.apply_to_revenue = apply_to_revenue == "true"
     requirement.revenue_is_deduction = revenue_type == "deduction"
     requirement.apply_to_expense = apply_to_expense == "true"

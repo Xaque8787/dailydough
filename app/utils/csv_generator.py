@@ -6,6 +6,9 @@ from sqlalchemy.orm import Session
 from app.models import DailyBalance, DailyEmployeeEntry, Employee
 
 def generate_daily_balance_csv(daily_balance: DailyBalance, employee_entries: List[DailyEmployeeEntry]) -> str:
+    # Sort employees by last name, first name
+    employee_entries = sorted(employee_entries, key=lambda e: (e.employee.last_name or '', e.employee.first_name or ''))
+
     # Parse the date to get year and month
     if isinstance(daily_balance.date, str):
         date_obj = datetime.strptime(daily_balance.date, '%Y-%m-%d').date()
@@ -95,7 +98,7 @@ def generate_tip_report_csv(db: Session, start_date: date, end_date: date) -> st
     filename = f"tip-report-{start_date}-to-{end_date}.csv"
     filepath = os.path.join(reports_dir, filename)
 
-    employees = db.query(Employee).order_by(Employee.name).all()
+    employees = db.query(Employee).order_by(Employee.last_name, Employee.first_name).all()
 
     with open(filepath, 'w', newline='') as csvfile:
         writer = csv.writer(csvfile)
@@ -104,6 +107,59 @@ def generate_tip_report_csv(db: Session, start_date: date, end_date: date) -> st
         writer.writerow(["Date Range", f"{start_date} to {end_date}"])
         writer.writerow([])
 
+        # Payroll Summary Section
+        writer.writerow(["PAYROLL SUMMARY"])
+        writer.writerow([])
+
+        payroll_summary_data = []
+        payroll_fields = []
+
+        for employee in employees:
+            entries = db.query(DailyEmployeeEntry).filter(
+                DailyEmployeeEntry.employee_id == employee.id
+            ).join(DailyBalance).filter(
+                DailyBalance.finalized == True,
+                DailyBalance.date >= start_date,
+                DailyBalance.date <= end_date
+            ).all()
+
+            if entries and employee.position.tip_requirements:
+                payroll_reqs = [req for req in employee.position.tip_requirements if req.include_in_payroll_summary]
+
+                if payroll_reqs:
+                    emp_data = {"employee": employee.display_name, "position": employee.position.name}
+
+                    for req in payroll_reqs:
+                        if req.field_name not in payroll_fields:
+                            payroll_fields.append(req.field_name)
+
+                        total = 0
+                        for entry in entries:
+                            if entry.tip_values_json:
+                                total += entry.tip_values_json.get(req.field_name, 0)
+                        emp_data[req.field_name] = total
+
+                    payroll_summary_data.append(emp_data)
+
+        if payroll_summary_data:
+            header_row = ["Employee Name", "Position"] + payroll_fields
+            writer.writerow(header_row)
+
+            for emp_data in payroll_summary_data:
+                row = [emp_data["employee"], emp_data["position"]]
+                for field in payroll_fields:
+                    value = emp_data.get(field, 0)
+                    row.append(f"${value:.2f}")
+                writer.writerow(row)
+        else:
+            writer.writerow(["No payroll summary data available for this period"])
+
+        writer.writerow([])
+        writer.writerow([])
+
+        # Regular Summary Section
+        writer.writerow(["EMPLOYEE SUMMARY"])
+        writer.writerow([])
         writer.writerow([
             "Employee Name",
             "Position",
@@ -279,7 +335,8 @@ def generate_consolidated_daily_balance_csv(db: Session, start_date: date, end_d
                 "Take-Home Tips"
             ])
 
-            for entry in daily_balance.employee_entries:
+            sorted_entries = sorted(daily_balance.employee_entries, key=lambda e: (e.employee.last_name or '', e.employee.first_name or ''))
+            for entry in sorted_entries:
                 writer.writerow([
                     entry.employee.display_name,
                     entry.employee.position.name,
@@ -345,6 +402,24 @@ def generate_employee_tip_report_csv(db: Session, employee: Employee, start_date
         if not entries:
             writer.writerow(["No entries found for this employee in the selected date range"])
             return filename
+
+        # Payroll Summary Section
+        if employee.position.tip_requirements:
+            payroll_reqs = [req for req in employee.position.tip_requirements if req.include_in_payroll_summary]
+
+            if payroll_reqs:
+                writer.writerow(["PAYROLL SUMMARY"])
+                writer.writerow([])
+
+                for req in payroll_reqs:
+                    total = 0
+                    for entry in entries:
+                        if entry.tip_values_json:
+                            total += entry.tip_values_json.get(req.field_name, 0)
+                    writer.writerow([req.name, f"${total:.2f}"])
+
+                writer.writerow([])
+                writer.writerow([])
 
         total_bank_card_tips = sum(entry.bank_card_tips or 0 for entry in entries)
         total_cash_tips = sum(entry.cash_tips or 0 for entry in entries)

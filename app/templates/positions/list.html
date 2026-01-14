@@ -93,6 +93,9 @@
                             {% if req.record_data %}
                                 <span class="badge badge-primary">Record Data</span>
                             {% endif %}
+                            {% if req.include_in_payroll_summary %}
+                                <span class="badge badge-info">Payroll Summary</span>
+                            {% endif %}
                             {% if req.apply_to_revenue %}
                                 <span class="badge badge-success">→ Revenue {% if req.revenue_is_deduction %}(−){% else %}(+){% endif %}</span>
                             {% endif %}
@@ -159,6 +162,11 @@
                 <label style="display: flex; align-items: center; gap: 8px; margin-bottom: 1rem; cursor: pointer;">
                     <input type="checkbox" id="record_data" name="record_data" value="true">
                     <span>Record Data - Allow data entry but exclude from total calculations</span>
+                </label>
+
+                <label style="display: flex; align-items: center; gap: 8px; margin-bottom: 1rem; cursor: pointer;">
+                    <input type="checkbox" id="include_in_payroll_summary" name="include_in_payroll_summary" value="true">
+                    <span>Include in Payroll Summary - Show in payroll summary section of tip reports</span>
                 </label>
             </div>
 
@@ -247,6 +255,11 @@
                 <label style="display: flex; align-items: center; gap: 8px; margin-bottom: 1rem; cursor: pointer;">
                     <input type="checkbox" id="edit_record_data" name="record_data" value="true">
                     <span>Record Data - Allow data entry but exclude from total calculations</span>
+                </label>
+
+                <label style="display: flex; align-items: center; gap: 8px; margin-bottom: 1rem; cursor: pointer;">
+                    <input type="checkbox" id="edit_include_in_payroll_summary" name="include_in_payroll_summary" value="true">
+                    <span>Include in Payroll Summary - Show in payroll summary section of tip reports</span>
                 </label>
             </div>
 
@@ -414,6 +427,7 @@ async function openEditModal(slug, name, fieldName, displayOrder) {
     document.getElementById('edit_no_input').checked = req.no_input || false;
     document.getElementById('edit_no_null_value').checked = req.no_null_value || false;
     document.getElementById('edit_record_data').checked = req.record_data || false;
+    document.getElementById('edit_include_in_payroll_summary').checked = req.include_in_payroll_summary || false;
 
     document.getElementById('edit_apply_to_revenue').checked = req.apply_to_revenue || false;
     toggleEditRevenueOptions(req.apply_to_revenue || false);

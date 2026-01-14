@@ -183,7 +183,8 @@ def serialize_employee(emp, db):
                     "revenue_is_deduction": req.revenue_is_deduction,
                     "apply_to_expense": req.apply_to_expense,
                     "expense_is_deduction": req.expense_is_deduction,
-                    "record_data": req.record_data
+                    "record_data": req.record_data,
+                    "include_in_payroll_summary": req.include_in_payroll_summary
                 } for req in emp.position.tip_requirements
             ]
         }

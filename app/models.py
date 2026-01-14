@@ -52,6 +52,7 @@ class TipEntryRequirement(Base):
     no_null_value = Column(Boolean, default=False)
     no_input = Column(Boolean, default=False)
     record_data = Column(Boolean, default=False)
+    include_in_payroll_summary = Column(Boolean, default=False)
 
     positions = relationship(
         "Position",
