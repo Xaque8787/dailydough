@@ -135,8 +135,8 @@ def generate_tip_report_csv(db: Session, start_date: date, end_date: date) -> st
 
                         total = 0
                         for entry in entries:
-                            if entry.tip_values_json:
-                                total += entry.tip_values_json.get(req.field_name, 0)
+                            if entry.tip_values:
+                                total += entry.tip_values.get(req.field_name, 0)
                         emp_data[req.field_name] = total
 
                     payroll_summary_data.append(emp_data)
@@ -414,8 +414,8 @@ def generate_employee_tip_report_csv(db: Session, employee: Employee, start_date
                 for req in payroll_reqs:
                     total = 0
                     for entry in entries:
-                        if entry.tip_values_json:
-                            total += entry.tip_values_json.get(req.field_name, 0)
+                        if entry.tip_values:
+                            total += entry.tip_values.get(req.field_name, 0)
                     writer.writerow([req.name, f"${total:.2f}"])
 
                 writer.writerow([])
