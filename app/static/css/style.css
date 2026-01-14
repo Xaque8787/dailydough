@@ -204,6 +204,13 @@ body {
     color: #2c3e50;
 }
 
+.hero .subtitle {
+    font-size: 1.3rem;
+    color: #3498db;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+}
+
 .current-date {
     font-size: 1.2rem;
     color: #7f8c8d;
