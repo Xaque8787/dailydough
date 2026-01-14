@@ -15,9 +15,62 @@
         </a>
     </div>
 
+    {% if report_data.payroll_summary and report_data.payroll_summary|length > 0 %}
+    <div class="report-section">
+        <h2>Payroll Summary</h2>
+        <div class="table-wrapper">
+            {% if report_data.is_employee_specific %}
+            <table class="summary-table">
+                <thead>
+                    <tr>
+                        <th>Item</th>
+                        <th>Amount</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for employee in report_data.payroll_summary %}
+                        {% for field in employee.fields %}
+                        <tr>
+                            <td class="employee-name">{{ field.name }}</td>
+                            <td class="amount">{{ field.value }}</td>
+                        </tr>
+                        {% endfor %}
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <table class="summary-table">
+                <thead>
+                    <tr>
+                        <th>Employee Name</th>
+                        <th>Position</th>
+                        {% if report_data.payroll_summary[0].fields %}
+                            {% for field in report_data.payroll_summary[0].fields %}
+                            <th>{{ field.name }}</th>
+                            {% endfor %}
+                        {% endif %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for employee in report_data.payroll_summary %}
+                    <tr>
+                        <td class="employee-name">{{ employee.employee_name }}</td>
+                        <td>{{ employee.position }}</td>
+                        {% for field in employee.fields %}
+                        <td class="amount">{{ field.value }}</td>
+                        {% endfor %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
     {% if report_data.summary and report_data.summary|length > 0 %}
     <div class="report-section">
-        <h2>Summary</h2>
+        <h2>Employee Summary</h2>
         <div class="table-wrapper">
             <table class="summary-table">
                 <thead>

@@ -119,6 +119,7 @@ def parse_tip_report_csv(filepath: str) -> Dict[str, Any]:
         'date_range': '',
         'summary': [],
         'details': [],
+        'payroll_summary': [],
         'is_employee_specific': is_employee_specific,
         'employee_name': employee_name,
         'employee_position': employee_position
@@ -128,6 +129,28 @@ def parse_tip_report_csv(filepath: str) -> Dict[str, Any]:
         for i, row in enumerate(rows):
             if row and len(row) > 1 and row[0] == "Date Range":
                 report_data['date_range'] = row[1]
+            elif row and len(row) > 0 and row[0] == "PAYROLL SUMMARY":
+                # Parse payroll summary for individual employee report
+                payroll_fields = []
+                for j in range(i + 2, len(rows)):
+                    if not rows[j] or len(rows[j]) < 2:
+                        break
+                    if rows[j][0] in ['Summary', 'Daily Breakdown', '']:
+                        break
+                    key = rows[j][0].strip()
+                    value = rows[j][1].strip()
+                    if key:
+                        payroll_fields.append({
+                            'name': key,
+                            'value': value
+                        })
+
+                if payroll_fields:
+                    report_data['payroll_summary'].append({
+                        'employee_name': employee_name,
+                        'position': employee_position,
+                        'fields': payroll_fields
+                    })
             elif row and len(row) > 0 and row[0] == "Summary":
                 summary_data = {}
                 for j in range(i + 1, len(rows)):
@@ -185,37 +208,76 @@ def parse_tip_report_csv(filepath: str) -> Dict[str, Any]:
 
     report_data['date_range'] = rows[1][1] if len(rows[1]) > 1 else ''
 
+    payroll_summary_start = None
     summary_start = None
     details_start = None
 
     for i, row in enumerate(rows):
-        if row and len(row) > 0 and row[0] == "Employee Name":
+        if row and len(row) > 0 and row[0] == "PAYROLL SUMMARY":
+            payroll_summary_start = i
+            print(f"DEBUG: Found payroll summary start at row {i}")
+        elif row and len(row) > 0 and row[0] == "EMPLOYEE SUMMARY":
             summary_start = i
-            print(f"DEBUG: Found summary start at row {i}")
+            print(f"DEBUG: Found employee summary start at row {i}")
         elif row and len(row) > 0 and "Detailed Daily Breakdown" in str(row[0]):
             details_start = i
             print(f"DEBUG: Found details start at row {i}")
             break
 
-    if summary_start is not None:
-        for i in range(summary_start + 1, len(rows)):
-            row = rows[i]
-            if not row or len(row) == 0:
-                break
-            if row[0] == '' or 'Detailed' in str(row[0]):
-                break
-            if len(row) >= 9 and row[0].strip():
-                report_data['summary'].append({
-                    'employee_name': row[0].strip(),
+    # Parse payroll summary section
+    report_data['payroll_summary'] = []
+    if payroll_summary_start is not None:
+        # Find the header row (should be 2 rows after PAYROLL SUMMARY title)
+        header_row_idx = payroll_summary_start + 2
+        if header_row_idx < len(rows) and rows[header_row_idx]:
+            headers = rows[header_row_idx]
+            # Parse data rows
+            for i in range(header_row_idx + 1, len(rows)):
+                row = rows[i]
+                if not row or len(row) == 0 or not row[0].strip():
+                    break
+                if row[0] == 'EMPLOYEE SUMMARY' or 'No payroll summary' in str(row[0]):
+                    break
+
+                # Build payroll summary entry dynamically based on headers
+                entry = {
+                    'employee_name': row[0].strip() if len(row) > 0 else '',
                     'position': row[1].strip() if len(row) > 1 else '',
-                    'bank_card_tips': row[2].strip() if len(row) > 2 else '',
-                    'cash_tips': row[3].strip() if len(row) > 3 else '',
-                    'adjustments': row[4].strip() if len(row) > 4 else '',
-                    'tips_on_paycheck': row[5].strip() if len(row) > 5 else '',
-                    'tip_out': row[6].strip() if len(row) > 6 else '',
-                    'take_home': row[7].strip() if len(row) > 7 else '',
-                    'num_shifts': row[8].strip() if len(row) > 8 else ''
-                })
+                    'fields': []
+                }
+
+                # Add custom fields (everything after employee name and position)
+                for j in range(2, len(headers)):
+                    if j < len(row):
+                        entry['fields'].append({
+                            'name': headers[j].strip(),
+                            'value': row[j].strip()
+                        })
+
+                report_data['payroll_summary'].append(entry)
+
+    if summary_start is not None:
+        # Skip to the row with "Employee Name" header
+        header_idx = summary_start + 2
+        if header_idx < len(rows) and rows[header_idx] and rows[header_idx][0] == "Employee Name":
+            for i in range(header_idx + 1, len(rows)):
+                row = rows[i]
+                if not row or len(row) == 0:
+                    break
+                if row[0] == '' or 'Detailed' in str(row[0]):
+                    break
+                if len(row) >= 9 and row[0].strip():
+                    report_data['summary'].append({
+                        'employee_name': row[0].strip(),
+                        'position': row[1].strip() if len(row) > 1 else '',
+                        'bank_card_tips': row[2].strip() if len(row) > 2 else '',
+                        'cash_tips': row[3].strip() if len(row) > 3 else '',
+                        'adjustments': row[4].strip() if len(row) > 4 else '',
+                        'tips_on_paycheck': row[5].strip() if len(row) > 5 else '',
+                        'tip_out': row[6].strip() if len(row) > 6 else '',
+                        'take_home': row[7].strip() if len(row) > 7 else '',
+                        'num_shifts': row[8].strip() if len(row) > 8 else ''
+                    })
 
     if details_start is not None:
         current_employee = None
