@@ -90,6 +90,9 @@
                             {% if req.no_null_value %}
                                 <span class="badge badge-danger">Required</span>
                             {% endif %}
+                            {% if req.record_data %}
+                                <span class="badge badge-primary">Record Data</span>
+                            {% endif %}
                             {% if req.apply_to_revenue %}
                                 <span class="badge badge-success">→ Revenue {% if req.revenue_is_deduction %}(−){% else %}(+){% endif %}</span>
                             {% endif %}
@@ -148,9 +151,14 @@
                     <span>No Input - Display name only (placeholder/memo, no input field)</span>
                 </label>
 
-                <label style="display: flex; align-items: center; gap: 8px; margin-bottom: 1rem; cursor: pointer;">
+                <label style="display: flex; align-items: center; gap: 8px; margin-bottom: 0.5rem; cursor: pointer;">
                     <input type="checkbox" id="no_null_value" name="no_null_value" value="true">
                     <span>Require Value - Must have a positive value above 0</span>
+                </label>
+
+                <label style="display: flex; align-items: center; gap: 8px; margin-bottom: 1rem; cursor: pointer;">
+                    <input type="checkbox" id="record_data" name="record_data" value="true">
+                    <span>Record Data - Allow data entry but exclude from total calculations</span>
                 </label>
             </div>
 
@@ -231,9 +239,14 @@
                     <span>No Input - Display name only (placeholder/memo, no input field)</span>
                 </label>
 
-                <label style="display: flex; align-items: center; gap: 8px; margin-bottom: 1rem; cursor: pointer;">
+                <label style="display: flex; align-items: center; gap: 8px; margin-bottom: 0.5rem; cursor: pointer;">
                     <input type="checkbox" id="edit_no_null_value" name="no_null_value" value="true">
                     <span>Require Value - Must have a positive value above 0</span>
+                </label>
+
+                <label style="display: flex; align-items: center; gap: 8px; margin-bottom: 1rem; cursor: pointer;">
+                    <input type="checkbox" id="edit_record_data" name="record_data" value="true">
+                    <span>Record Data - Allow data entry but exclude from total calculations</span>
                 </label>
             </div>
 
@@ -352,6 +365,11 @@
     color: #2e7d32;
 }
 
+.badge-primary {
+    background: #e3f2fd;
+    color: #1565c0;
+}
+
 .section-header {
     display: flex;
     justify-content: space-between;
@@ -395,6 +413,7 @@ async function openEditModal(slug, name, fieldName, displayOrder) {
     document.getElementById('edit_is_deduction').checked = req.is_deduction || false;
     document.getElementById('edit_no_input').checked = req.no_input || false;
     document.getElementById('edit_no_null_value').checked = req.no_null_value || false;
+    document.getElementById('edit_record_data').checked = req.record_data || false;
 
     document.getElementById('edit_apply_to_revenue').checked = req.apply_to_revenue || false;
     toggleEditRevenueOptions(req.apply_to_revenue || false);

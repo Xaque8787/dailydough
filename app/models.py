@@ -51,6 +51,7 @@ class TipEntryRequirement(Base):
     expense_is_deduction = Column(Boolean, default=False)
     no_null_value = Column(Boolean, default=False)
     no_input = Column(Boolean, default=False)
+    record_data = Column(Boolean, default=False)
 
     positions = relationship(
         "Position",
