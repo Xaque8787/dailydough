@@ -170,6 +170,25 @@ async def download_saved_daily_balance_report(
         media_type="text/csv"
     )
 
+@router.get("/reports/daily-balance/saved")
+async def saved_daily_balance_reports(
+    request: Request,
+    current_user: User = Depends(get_current_user)
+):
+    if not current_user:
+        return RedirectResponse(url="/login", status_code=303)
+
+    saved_reports = get_saved_daily_balance_reports()
+
+    return templates.TemplateResponse(
+        "reports/saved_daily_balance_reports.html",
+        {
+            "request": request,
+            "current_user": current_user,
+            "saved_reports": saved_reports
+        }
+    )
+
 @router.get("/reports/tip-report")
 async def tip_report_page(
     request: Request,
