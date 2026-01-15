@@ -126,11 +126,32 @@ def run_tip_report_task(task_id, task_name, date_range_type, email_list_json, by
         """), {"execution_id": execution_id, "result_data": result_data})
         db.commit()
 
+        task_info = db.execute(text("""
+            SELECT schedule_type, cron_expression, interval_value, interval_unit, starts_at
+            FROM scheduled_tasks
+            WHERE id = :task_id
+        """), {"task_id": task_id}).fetchone()
+
+        if task_info:
+            from app.scheduler import get_next_run_times
+            next_runs = get_next_run_times(
+                schedule_type=task_info[0],
+                cron_expression=task_info[1],
+                interval_value=task_info[2],
+                interval_unit=task_info[3],
+                starts_at=task_info[4],
+                count=1
+            )
+            next_run_at = next_runs[0].isoformat() if next_runs else None
+        else:
+            next_run_at = None
+
         db.execute(text("""
             UPDATE scheduled_tasks
-            SET last_run_at = CURRENT_TIMESTAMP
+            SET last_run_at = CURRENT_TIMESTAMP,
+                next_run_at = :next_run_at
             WHERE id = :task_id
-        """), {"task_id": task_id})
+        """), {"task_id": task_id, "next_run_at": next_run_at})
         db.commit()
 
         cleanup_old_executions(task_id)
@@ -230,11 +251,32 @@ def run_daily_balance_report_task(task_id, task_name, date_range_type, email_lis
         """), {"execution_id": execution_id, "result_data": result_data})
         db.commit()
 
+        task_info = db.execute(text("""
+            SELECT schedule_type, cron_expression, interval_value, interval_unit, starts_at
+            FROM scheduled_tasks
+            WHERE id = :task_id
+        """), {"task_id": task_id}).fetchone()
+
+        if task_info:
+            from app.scheduler import get_next_run_times
+            next_runs = get_next_run_times(
+                schedule_type=task_info[0],
+                cron_expression=task_info[1],
+                interval_value=task_info[2],
+                interval_unit=task_info[3],
+                starts_at=task_info[4],
+                count=1
+            )
+            next_run_at = next_runs[0].isoformat() if next_runs else None
+        else:
+            next_run_at = None
+
         db.execute(text("""
             UPDATE scheduled_tasks
-            SET last_run_at = CURRENT_TIMESTAMP
+            SET last_run_at = CURRENT_TIMESTAMP,
+                next_run_at = :next_run_at
             WHERE id = :task_id
-        """), {"task_id": task_id})
+        """), {"task_id": task_id, "next_run_at": next_run_at})
         db.commit()
 
         cleanup_old_executions(task_id)
