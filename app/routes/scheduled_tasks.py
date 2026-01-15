@@ -65,11 +65,11 @@ async def scheduled_tasks_page(
                 if dt.tzinfo is None:
                     dt = pytz.UTC.localize(dt)
                 exec_list[2] = dt.astimezone(tz).strftime('%Y-%m-%d %I:%M:%S %p')
-            if exec_list[4]:
-                dt = datetime.fromisoformat(exec_list[4].replace('Z', '+00:00'))
+            if exec_list[3]:
+                dt = datetime.fromisoformat(exec_list[3].replace('Z', '+00:00'))
                 if dt.tzinfo is None:
                     dt = pytz.UTC.localize(dt)
-                exec_list[4] = dt.astimezone(tz).strftime('%Y-%m-%d %I:%M:%S %p')
+                exec_list[3] = dt.astimezone(tz).strftime('%Y-%m-%d %I:%M:%S %p')
             executions_list.append(exec_list)
 
         tasks_with_executions.append({

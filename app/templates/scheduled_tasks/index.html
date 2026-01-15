@@ -82,10 +82,10 @@
                     </thead>
                     <tbody>
                         {% for exec in item.executions %}
-                        <tr class="{{ exec[3] }}">
+                        <tr class="{{ exec[4] }}">
                             <td>{{ exec[2] }}</td>
-                            <td>{{ exec[4] if exec[4] else '-' }}</td>
-                            <td><span class="status-badge {{ exec[3] }}">{{ exec[3] }}</span></td>
+                            <td>{{ exec[3] if exec[3] else '-' }}</td>
+                            <td><span class="status-badge {{ exec[4] }}">{{ exec[4] }}</span></td>
                             <td>
                                 {% if exec[5] %}
                                     <span class="error-message" title="{{ exec[5] }}">{{ exec[5][:50] }}...</span>
