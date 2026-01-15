@@ -610,6 +610,12 @@ async function previewNextRuns() {
         const data = await response.json();
         console.log('Response data:', data);
 
+        if (response.status === 422) {
+            console.error('Validation error:', JSON.stringify(data.detail, null, 2));
+            alert('Validation error: ' + JSON.stringify(data.detail));
+            return;
+        }
+
         if (data.success) {
             const list = document.getElementById('next_runs_list');
             list.innerHTML = '';
