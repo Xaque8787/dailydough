@@ -203,6 +203,155 @@ async def toggle_scheduled_task(
             content={"success": False, "message": str(e)}
         )
 
+@router.get("/scheduled-tasks/{task_id}")
+async def get_scheduled_task(
+    task_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    if not current_user or not current_user.is_admin:
+        return JSONResponse(
+            status_code=401,
+            content={"success": False, "message": "Unauthorized"}
+        )
+
+    try:
+        task = db.execute(text("""
+            SELECT id, name, task_type, schedule_type, cron_expression,
+                   interval_value, interval_unit, starts_at, date_range_type,
+                   email_list, bypass_opt_in, is_active
+            FROM scheduled_tasks WHERE id = :task_id
+        """), {"task_id": task_id}).fetchone()
+
+        if not task:
+            return JSONResponse(
+                status_code=404,
+                content={"success": False, "message": "Task not found"}
+            )
+
+        email_list = json.loads(task[9]) if task[9] else []
+
+        return JSONResponse(
+            status_code=200,
+            content={
+                "success": True,
+                "task": {
+                    "id": task[0],
+                    "name": task[1],
+                    "task_type": task[2],
+                    "schedule_type": task[3],
+                    "cron_expression": task[4],
+                    "interval_value": task[5],
+                    "interval_unit": task[6],
+                    "starts_at": task[7],
+                    "date_range_type": task[8],
+                    "email_list": email_list,
+                    "bypass_opt_in": task[10],
+                    "is_active": task[11]
+                }
+            }
+        )
+
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content={"success": False, "message": str(e)}
+        )
+
+@router.put("/scheduled-tasks/{task_id}")
+async def update_scheduled_task(
+    task_id: int,
+    request: Request,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    if not current_user or not current_user.is_admin:
+        return JSONResponse(
+            status_code=401,
+            content={"success": False, "message": "Unauthorized"}
+        )
+
+    form_data = await request.form()
+    name = form_data.get("name", "").strip()
+    task_type = form_data.get("task_type")
+    schedule_type = form_data.get("schedule_type")
+    cron_expression = form_data.get("cron_expression", "").strip() if schedule_type == "cron" else None
+    interval_value = int(form_data.get("interval_value", 0)) if schedule_type == "interval" else None
+    interval_unit = form_data.get("interval_unit") if schedule_type == "interval" else None
+    starts_at = form_data.get("starts_at", "").strip() if schedule_type == "interval" else None
+    date_range_type = form_data.get("date_range_type")
+    bypass_opt_in = 1 if form_data.get("bypass_opt_in") == "1" else 0
+
+    user_emails = form_data.getlist("user_emails[]")
+    additional_email = form_data.get("additional_email", "").strip()
+
+    email_list = [email for email in user_emails if email]
+    if additional_email:
+        email_list.append(additional_email)
+
+    email_list_json = json.dumps(email_list) if email_list else None
+
+    try:
+        next_runs = get_next_run_times(schedule_type, cron_expression, interval_value, interval_unit, starts_at, count=1)
+        next_run_at = next_runs[0].isoformat() if next_runs else None
+
+        db.execute(text("""
+            UPDATE scheduled_tasks
+            SET name = :name,
+                task_type = :task_type,
+                schedule_type = :schedule_type,
+                cron_expression = :cron_expression,
+                interval_value = :interval_value,
+                interval_unit = :interval_unit,
+                starts_at = :starts_at,
+                date_range_type = :date_range_type,
+                email_list = :email_list,
+                bypass_opt_in = :bypass_opt_in,
+                next_run_at = :next_run_at
+            WHERE id = :task_id
+        """), {
+            "name": name,
+            "task_type": task_type,
+            "schedule_type": schedule_type,
+            "cron_expression": cron_expression,
+            "interval_value": interval_value,
+            "interval_unit": interval_unit,
+            "starts_at": starts_at,
+            "date_range_type": date_range_type,
+            "email_list": email_list_json,
+            "bypass_opt_in": bypass_opt_in,
+            "next_run_at": next_run_at,
+            "task_id": task_id
+        })
+        db.commit()
+
+        job_id = f"task_{task_id}"
+        if scheduler.get_job(job_id):
+            scheduler.remove_job(job_id)
+
+        task = db.execute(text("""
+            SELECT is_active FROM scheduled_tasks WHERE id = :task_id
+        """), {"task_id": task_id}).fetchone()
+
+        if task and task[0]:
+            add_job_to_scheduler(
+                task_id, name, task_type, schedule_type,
+                cron_expression, interval_value, interval_unit, starts_at,
+                date_range_type, email_list_json, bypass_opt_in
+            )
+
+        return JSONResponse(
+            status_code=200,
+            content={"success": True, "message": "Scheduled task updated successfully"}
+        )
+
+    except Exception as e:
+        db.rollback()
+        return JSONResponse(
+            status_code=500,
+            content={"success": False, "message": str(e)}
+        )
+
 @router.delete("/scheduled-tasks/{task_id}")
 async def delete_scheduled_task(
     task_id: int,

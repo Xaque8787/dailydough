@@ -16,6 +16,11 @@
                 <h3>{{ item.task[1] }}</h3>
                 <div class="task-actions">
                     <button
+                        onclick="editTask({{ item.task[0] }})"
+                        class="btn btn-sm btn-primary">
+                        Edit
+                    </button>
+                    <button
                         onclick="toggleTask({{ item.task[0] }})"
                         class="btn btn-sm {% if item.task[12] %}btn-warning{% else %}btn-success{% endif %}">
                         {% if item.task[12] %}Pause{% else %}Activate{% endif %}
@@ -108,11 +113,12 @@
 <div id="createTaskModal" class="modal" style="display: none;">
     <div class="modal-content large">
         <div class="modal-header">
-            <h3>Create Scheduled Task</h3>
+            <h3 id="modalTitle">Create Scheduled Task</h3>
             <button class="close-btn" onclick="closeCreateTaskModal()">&times;</button>
         </div>
 
         <form id="createTaskForm" onsubmit="return handleCreateTask(event)">
+            <input type="hidden" id="task_id" name="task_id" value="">
             <div class="form-group">
                 <label for="name">Task Name</label>
                 <input type="text" id="name" name="name" required class="form-control">
@@ -546,6 +552,11 @@
 
 <script>
 function showCreateTaskModal() {
+    document.getElementById('modalTitle').textContent = 'Create Scheduled Task';
+    document.getElementById('task_id').value = '';
+    document.getElementById('createTaskForm').reset();
+    document.getElementById('next_runs_preview').style.display = 'none';
+    toggleScheduleFields();
     document.getElementById('createTaskModal').style.display = 'flex';
 }
 
@@ -553,6 +564,7 @@ function closeCreateTaskModal() {
     document.getElementById('createTaskModal').style.display = 'none';
     document.getElementById('createTaskForm').reset();
     document.getElementById('next_runs_preview').style.display = 'none';
+    document.getElementById('task_id').value = '';
 }
 
 function toggleScheduleFields() {
@@ -609,22 +621,76 @@ async function handleCreateTask(event) {
     event.preventDefault();
 
     const formData = new FormData(event.target);
+    const taskId = document.getElementById('task_id').value;
 
-    const response = await fetch('/scheduled-tasks/create', {
-        method: 'POST',
+    let url = '/scheduled-tasks/create';
+    let method = 'POST';
+
+    if (taskId) {
+        url = `/scheduled-tasks/${taskId}`;
+        method = 'PUT';
+    }
+
+    const response = await fetch(url, {
+        method: method,
         body: formData
     });
 
     const data = await response.json();
 
     if (data.success) {
-        alert('Scheduled task created successfully');
+        alert(taskId ? 'Scheduled task updated successfully' : 'Scheduled task created successfully');
         location.reload();
     } else {
         alert('Error: ' + data.message);
     }
 
     return false;
+}
+
+async function editTask(taskId) {
+    const response = await fetch(`/scheduled-tasks/${taskId}`);
+    const data = await response.json();
+
+    if (!data.success) {
+        alert('Error loading task: ' + data.message);
+        return;
+    }
+
+    const task = data.task;
+
+    document.getElementById('modalTitle').textContent = 'Edit Scheduled Task';
+    document.getElementById('task_id').value = task.id;
+    document.getElementById('name').value = task.name;
+    document.getElementById('task_type').value = task.task_type;
+    document.getElementById('schedule_type').value = task.schedule_type;
+    document.getElementById('date_range_type').value = task.date_range_type;
+
+    if (task.schedule_type === 'cron') {
+        document.getElementById('cron_expression').value = task.cron_expression || '';
+    } else {
+        document.getElementById('interval_value').value = task.interval_value || '';
+        document.getElementById('interval_unit').value = task.interval_unit || '';
+        document.getElementById('starts_at').value = task.starts_at || '';
+    }
+
+    toggleScheduleFields();
+
+    document.querySelectorAll('input[name="user_emails[]"]').forEach(checkbox => {
+        checkbox.checked = task.email_list && task.email_list.includes(checkbox.value);
+    });
+
+    const additionalEmails = task.email_list ? task.email_list.filter(email => {
+        return !Array.from(document.querySelectorAll('input[name="user_emails[]"]')).some(cb => cb.value === email);
+    }) : [];
+
+    if (additionalEmails.length > 0) {
+        document.getElementById('additional_email').value = additionalEmails[0];
+    }
+
+    document.getElementById('bypass_opt_in').checked = task.bypass_opt_in === 1;
+
+    showCreateTaskModal();
 }
 
 async function toggleTask(taskId) {
