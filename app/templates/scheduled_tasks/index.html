@@ -54,16 +54,16 @@
                         {% if item.task[12] %}Active{% else %}Inactive{% endif %}
                     </span>
                 </div>
-                {% if item.task[14] %}
-                <div class="task-info">
-                    <span class="label">Last Run:</span>
-                    <span>{{ item.task[14] }}</span>
-                </div>
-                {% endif %}
                 {% if item.task[15] %}
                 <div class="task-info">
-                    <span class="label">Next Run:</span>
+                    <span class="label">Last Run:</span>
                     <span>{{ item.task[15] }}</span>
+                </div>
+                {% endif %}
+                {% if item.task[16] %}
+                <div class="task-info">
+                    <span class="label">Next Run:</span>
+                    <span>{{ item.task[16] }}</span>
                 </div>
                 {% endif %}
             </div>

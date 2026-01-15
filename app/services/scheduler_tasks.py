@@ -3,6 +3,7 @@ import json
 from datetime import datetime, timedelta, date
 from dateutil.relativedelta import relativedelta
 from sqlalchemy import text
+import pytz
 from app.database import SessionLocal, DATABASE_DIR
 from app.models import User
 from app.utils.csv_generator import generate_tip_report_csv, generate_consolidated_daily_balance_csv
@@ -12,6 +13,7 @@ from app.scheduler import cleanup_old_executions
 def calculate_date_range(date_range_type):
     """
     Calculate start and end dates based on the date range type.
+    Uses the configured timezone (TZ environment variable) to determine "today".
 
     Args:
         date_range_type: String like 'previous_day', 'previous_week', 'previous_2_weeks', 'previous_month', etc.
@@ -19,7 +21,10 @@ def calculate_date_range(date_range_type):
     Returns:
         Tuple of (start_date, end_date)
     """
-    today = date.today()
+    TIMEZONE = os.getenv('TZ', 'America/Los_Angeles')
+    tz = pytz.timezone(TIMEZONE)
+    now = datetime.now(tz)
+    today = now.date()
 
     if date_range_type == 'previous_day':
         end_date = today - timedelta(days=1)

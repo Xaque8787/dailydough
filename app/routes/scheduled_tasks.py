@@ -45,17 +45,17 @@ async def scheduled_tasks_page(
 
         task_list = list(task)
 
-        if task_list[14]:
-            dt = datetime.fromisoformat(task_list[14].replace('Z', '+00:00'))
-            if dt.tzinfo is None:
-                dt = pytz.UTC.localize(dt)
-            task_list[14] = dt.astimezone(tz).strftime('%Y-%m-%d %I:%M:%S %p')
-
         if task_list[15]:
             dt = datetime.fromisoformat(task_list[15].replace('Z', '+00:00'))
             if dt.tzinfo is None:
                 dt = pytz.UTC.localize(dt)
             task_list[15] = dt.astimezone(tz).strftime('%Y-%m-%d %I:%M:%S %p')
+
+        if task_list[16]:
+            dt = datetime.fromisoformat(task_list[16].replace('Z', '+00:00'))
+            if dt.tzinfo is None:
+                dt = pytz.UTC.localize(dt)
+            task_list[16] = dt.astimezone(tz).strftime('%Y-%m-%d %I:%M:%S %p')
 
         executions_list = []
         for execution in recent_executions:
