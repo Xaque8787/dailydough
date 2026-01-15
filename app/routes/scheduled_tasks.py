@@ -59,6 +59,54 @@ async def scheduled_tasks_page(
         }
     )
 
+@router.get("/scheduled-tasks/next-runs")
+async def get_next_runs(
+    schedule_type: str,
+    cron_expression: Optional[str] = None,
+    interval_value: Optional[int] = None,
+    interval_unit: Optional[str] = None,
+    starts_at: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    if not current_user or not current_user.is_admin:
+        return JSONResponse(
+            status_code=401,
+            content={"success": False, "message": "Unauthorized"}
+        )
+
+    try:
+        next_runs = get_next_run_times(
+            schedule_type,
+            cron_expression,
+            interval_value,
+            interval_unit,
+            starts_at,
+            count=5
+        )
+
+        if not next_runs:
+            return JSONResponse(
+                status_code=400,
+                content={"success": False, "message": "Could not calculate schedule. Please check your schedule settings."}
+            )
+
+        return JSONResponse(
+            status_code=200,
+            content={
+                "success": True,
+                "next_runs": [run.isoformat() for run in next_runs]
+            }
+        )
+
+    except Exception as e:
+        print(f"Error in get_next_runs: {e}")
+        import traceback
+        traceback.print_exc()
+        return JSONResponse(
+            status_code=400,
+            content={"success": False, "message": str(e) if str(e) else "Failed to calculate next run times"}
+        )
+
 @router.post("/scheduled-tasks/create")
 async def create_scheduled_task(
     request: Request,
@@ -384,54 +432,6 @@ async def delete_scheduled_task(
         return JSONResponse(
             status_code=500,
             content={"success": False, "message": str(e)}
-        )
-
-@router.get("/scheduled-tasks/next-runs")
-async def get_next_runs(
-    schedule_type: str,
-    cron_expression: Optional[str] = None,
-    interval_value: Optional[int] = None,
-    interval_unit: Optional[str] = None,
-    starts_at: Optional[str] = None,
-    current_user: User = Depends(get_current_user)
-):
-    if not current_user or not current_user.is_admin:
-        return JSONResponse(
-            status_code=401,
-            content={"success": False, "message": "Unauthorized"}
-        )
-
-    try:
-        next_runs = get_next_run_times(
-            schedule_type,
-            cron_expression,
-            interval_value,
-            interval_unit,
-            starts_at,
-            count=5
-        )
-
-        if not next_runs:
-            return JSONResponse(
-                status_code=400,
-                content={"success": False, "message": "Could not calculate schedule. Please check your schedule settings."}
-            )
-
-        return JSONResponse(
-            status_code=200,
-            content={
-                "success": True,
-                "next_runs": [run.isoformat() for run in next_runs]
-            }
-        )
-
-    except Exception as e:
-        print(f"Error in get_next_runs: {e}")
-        import traceback
-        traceback.print_exc()
-        return JSONResponse(
-            status_code=400,
-            content={"success": False, "message": str(e) if str(e) else "Failed to calculate next run times"}
         )
 
 def add_job_to_scheduler(
