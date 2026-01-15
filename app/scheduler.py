@@ -79,7 +79,11 @@ def get_next_run_times(schedule_type, cron_expression=None, interval_value=None,
                     break
 
         elif schedule_type == 'interval':
-            kwargs = {interval_unit: interval_value}
+            # Convert weeks to days to avoid DST-related discrepancies
+            if interval_unit == 'weeks':
+                kwargs = {'days': interval_value * 7}
+            else:
+                kwargs = {interval_unit: interval_value}
 
             if starts_at:
                 if isinstance(starts_at, str):
