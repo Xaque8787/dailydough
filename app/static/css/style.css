@@ -185,6 +185,15 @@ body {
     background-color: #c0392b;
 }
 
+.btn-warning {
+    background-color: #f39c12;
+    color: white;
+}
+
+.btn-warning:hover {
+    background-color: #e67e22;
+}
+
 .btn-small {
     padding: 0.4rem 0.8rem;
     font-size: 0.9rem;

@@ -106,3 +106,47 @@ def get_backup_path(filename: str) -> str:
         raise FileNotFoundError("Backup file not found")
 
     return filepath
+
+
+def restore_backup(filename: str) -> bool:
+    """
+    Restore database from a backup file.
+    This function will:
+    1. Validate the backup file exists
+    2. Copy the backup file to the database location
+
+    Important: All database connections must be closed before calling this function.
+    """
+    backups_dir = "data/backups"
+    backup_filepath = os.path.join(backups_dir, filename)
+
+    if not filename.endswith('.db'):
+        raise ValueError("Invalid filename")
+
+    if '..' in filename or '/' in filename:
+        raise ValueError("Invalid filename")
+
+    if not os.path.exists(backup_filepath):
+        raise FileNotFoundError("Backup file not found")
+
+    if not os.path.exists(DATABASE_PATH):
+        raise FileNotFoundError("Current database file not found")
+
+    try:
+        conn = sqlite3.connect(backup_filepath)
+        cursor = conn.cursor()
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
+        tables = cursor.fetchall()
+        conn.close()
+
+        if not tables:
+            raise ValueError("Backup file appears to be empty or corrupted")
+
+        shutil.copy2(backup_filepath, DATABASE_PATH)
+
+        return True
+
+    except sqlite3.Error as e:
+        raise ValueError(f"Backup file is not a valid SQLite database: {str(e)}")
+    except Exception as e:
+        raise Exception(f"Restore failed: {str(e)}")

@@ -3,6 +3,14 @@
 {% block title %}Administration - Management System{% endblock %}
 
 {% block content %}
+<script>
+const urlParams = new URLSearchParams(window.location.search);
+if (urlParams.get('restored') === 'true') {
+    alert('✅ Database restored successfully!\n\nThe database has been replaced with the backup. The page will reload now.');
+    window.location.href = '/admin';
+}
+</script>
+
 <div class="page-header">
     <h2>User Management</h2>
     <a href="/admin/users/new" class="btn btn-primary">Create New User</a>
@@ -64,6 +72,9 @@
                 <td>{{ backup.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
                 <td>
                     <a href="/admin/backups/{{ backup.filename }}/download" class="btn btn-small">Download</a>
+                    <form method="POST" action="/admin/backups/{{ backup.filename }}/restore" style="display: inline;">
+                        <button type="submit" class="btn btn-small btn-warning" onclick="return confirm('⚠️ WARNING: This will replace your current database with this backup.\n\nAll current data will be lost and replaced with the backup data.\n\nThis action cannot be undone.\n\nAre you absolutely sure you want to restore this backup?')">Restore</button>
+                    </form>
                     <form method="POST" action="/admin/backups/{{ backup.filename }}/delete" style="display: inline;">
                         <button type="submit" class="btn btn-small btn-danger" onclick="return confirm('Are you sure you want to delete this backup?')">Delete</button>
                     </form>

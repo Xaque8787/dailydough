@@ -6,7 +6,7 @@ from app.database import get_db
 from app.models import User
 from app.auth.jwt_handler import get_current_admin_user, get_password_hash
 from app.utils.slugify import create_slug, ensure_unique_slug
-from app.utils.backup import create_backup, list_backups, delete_backup, get_backup_path
+from app.utils.backup import create_backup, list_backups, delete_backup, get_backup_path, restore_backup
 
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
@@ -163,3 +163,20 @@ async def delete_database_backup(
     if not success:
         raise HTTPException(status_code=404, detail="Backup not found")
     return RedirectResponse(url="/admin", status_code=302)
+
+@router.post("/admin/backups/{filename}/restore")
+async def restore_database_backup(
+    filename: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_admin_user)
+):
+    try:
+        db.close()
+
+        restore_backup(filename)
+
+        return RedirectResponse(url="/admin?restored=true", status_code=302)
+    except (ValueError, FileNotFoundError) as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
