@@ -14,14 +14,17 @@ def calculate_date_range(date_range_type):
     Calculate start and end dates based on the date range type.
 
     Args:
-        date_range_type: String like 'previous_week', 'previous_2_weeks', 'previous_month', etc.
+        date_range_type: String like 'previous_day', 'previous_week', 'previous_2_weeks', 'previous_month', etc.
 
     Returns:
         Tuple of (start_date, end_date)
     """
     today = date.today()
 
-    if date_range_type == 'previous_week':
+    if date_range_type == 'previous_day':
+        end_date = today - timedelta(days=1)
+        start_date = end_date
+    elif date_range_type == 'previous_week':
         end_date = today - timedelta(days=today.weekday() + 1)
         start_date = end_date - timedelta(days=6)
     elif date_range_type == 'previous_2_weeks':

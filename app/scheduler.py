@@ -79,12 +79,7 @@ def get_next_run_times(schedule_type, cron_expression=None, interval_value=None,
                     break
 
         elif schedule_type == 'interval':
-            # Convert weeks to days to avoid DST-related discrepancies
-            if interval_unit == 'weeks':
-                kwargs = {'days': interval_value * 7}
-            else:
-                kwargs = {interval_unit: interval_value}
-
+            # Parse start date
             if starts_at:
                 if isinstance(starts_at, str):
                     start_date = datetime.fromisoformat(starts_at.replace('Z', '+00:00'))
@@ -97,16 +92,37 @@ def get_next_run_times(schedule_type, cron_expression=None, interval_value=None,
             else:
                 start_date = now
 
-            trigger = IntervalTrigger(timezone=tz, start_date=start_date, **kwargs)
+            # Convert weeks to days for consistent intervals
+            if interval_unit == 'weeks':
+                delta_kwargs = {'days': interval_value * 7}
+            elif interval_unit == 'days':
+                delta_kwargs = {'days': interval_value}
+            elif interval_unit == 'hours':
+                delta_kwargs = {'hours': interval_value}
+            elif interval_unit == 'minutes':
+                delta_kwargs = {'minutes': interval_value}
+            else:
+                delta_kwargs = {interval_unit: interval_value}
 
-            current = now
-            for _ in range(count):
-                next_run = trigger.get_next_fire_time(None, current)
-                if next_run:
-                    next_runs.append(next_run)
-                    current = next_run + timedelta(seconds=1)
+            # Manually calculate next runs to properly handle DST
+            current = start_date
+            interval_delta = timedelta(**delta_kwargs)
+
+            for i in range(count):
+                next_runs.append(current)
+                # For day/week intervals, add to naive time then re-localize to preserve wall clock time
+                if interval_unit in ['days', 'weeks']:
+                    naive_current = current.replace(tzinfo=None)
+                    naive_next = naive_current + interval_delta
+                    try:
+                        # Try to localize, handling ambiguous/non-existent times
+                        current = tz.localize(naive_next, is_dst=None)
+                    except:
+                        # If time doesn't exist (DST spring forward), use DST=False
+                        current = tz.localize(naive_next, is_dst=False)
                 else:
-                    break
+                    # For hours/minutes, use timezone-aware arithmetic
+                    current = current + interval_delta
 
     except Exception as e:
         print(f"Error calculating next run times: {e}")
