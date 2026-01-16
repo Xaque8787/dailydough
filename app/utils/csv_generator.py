@@ -323,6 +323,18 @@ def generate_consolidated_daily_balance_csv(db: Session, start_date: date, end_d
 
         for daily_balance in daily_balances:
             writer.writerow([f"Date: {daily_balance.date} - {daily_balance.day_of_week}"])
+
+            if daily_balance.created_by_source == "scheduled_task":
+                writer.writerow(["Report Created By", "Automated Scheduled Task"])
+            elif daily_balance.created_by_user:
+                writer.writerow(["Report Created By", daily_balance.created_by_user.username])
+
+            if daily_balance.finalized_at:
+                writer.writerow(["Report Finalized At", daily_balance.finalized_at.strftime("%Y-%m-%d %I:%M:%S %p")])
+
+            if daily_balance.edited_by_user:
+                writer.writerow(["Report Edited By", daily_balance.edited_by_user.username])
+
             if daily_balance.notes:
                 writer.writerow(["Notes", daily_balance.notes])
             writer.writerow([])
