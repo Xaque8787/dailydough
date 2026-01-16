@@ -97,7 +97,7 @@ async def export_consolidated_daily_balance(
     except ValueError:
         return RedirectResponse(url="/reports/daily-balance", status_code=303)
 
-    filename = generate_consolidated_daily_balance_csv(db, start_date_obj, end_date_obj)
+    filename = generate_consolidated_daily_balance_csv(db, start_date_obj, end_date_obj, current_user=current_user, source="user")
 
     year = str(start_date_obj.year)
     month = f"{start_date_obj.month:02d}"
@@ -337,7 +337,7 @@ async def generate_employee_tip_report_endpoint(
             content={"success": False, "message": "Invalid date format"}
         )
 
-    filename = generate_employee_tip_report_csv(db, employee, start_date_obj, end_date_obj)
+    filename = generate_employee_tip_report_csv(db, employee, start_date_obj, end_date_obj, current_user=current_user, source="user")
     filepath = os.path.join("data/reports/tip_report", filename)
 
     if not os.path.exists(filepath):
@@ -376,7 +376,7 @@ async def export_employee_tip_report(
     except ValueError:
         return RedirectResponse(url=f"/reports/tip-report/employee/{employee_slug}", status_code=303)
 
-    filename = generate_employee_tip_report_csv(db, employee, start_date_obj, end_date_obj)
+    filename = generate_employee_tip_report_csv(db, employee, start_date_obj, end_date_obj, current_user=current_user, source="user")
     filepath = os.path.join("data/reports/tip_report", filename)
 
     if not os.path.exists(filepath):
@@ -404,7 +404,7 @@ async def export_tip_report(
     except ValueError:
         return RedirectResponse(url="/reports/tip-report", status_code=303)
 
-    filename = generate_tip_report_csv(db, start_date_obj, end_date_obj)
+    filename = generate_tip_report_csv(db, start_date_obj, end_date_obj, current_user=current_user, source="user")
     filepath = os.path.join("data/reports/tip_report", filename)
 
     if not os.path.exists(filepath):
@@ -566,7 +566,7 @@ async def email_daily_balance_report(
             content={"success": False, "message": "Invalid date format"}
         )
 
-    filename = generate_consolidated_daily_balance_csv(db, start_date_obj, end_date_obj)
+    filename = generate_consolidated_daily_balance_csv(db, start_date_obj, end_date_obj, current_user=current_user, source="user")
 
     year = str(start_date_obj.year)
     month = f"{start_date_obj.month:02d}"
@@ -701,7 +701,7 @@ async def email_tip_report(
             content={"success": False, "message": "Invalid date format"}
         )
 
-    filename = generate_tip_report_csv(db, start_date_obj, end_date_obj)
+    filename = generate_tip_report_csv(db, start_date_obj, end_date_obj, current_user=current_user, source="user")
     filepath = os.path.join("data/reports/tip_report", filename)
 
     if not os.path.exists(filepath):

@@ -80,7 +80,7 @@ def run_tip_report_task(task_id, task_name, date_range_type, email_list_json, by
 
         execution_id = db.execute(text("SELECT last_insert_rowid()")).scalar()
 
-        filename = generate_tip_report_csv(db, start_date, end_date)
+        filename = generate_tip_report_csv(db, start_date, end_date, current_user=None, source="scheduled_task")
         filepath = os.path.join(DATABASE_DIR, "reports", "tip_report", filename)
 
         if not os.path.exists(filepath):
@@ -202,7 +202,7 @@ def run_daily_balance_report_task(task_id, task_name, date_range_type, email_lis
 
         execution_id = db.execute(text("SELECT last_insert_rowid()")).scalar()
 
-        filename = generate_consolidated_daily_balance_csv(db, start_date, end_date)
+        filename = generate_consolidated_daily_balance_csv(db, start_date, end_date, current_user=None, source="scheduled_task")
 
         year = str(start_date.year)
         month = f"{start_date.month:02d}"
@@ -332,7 +332,7 @@ def run_employee_tip_report_task(task_id, task_name, date_range_type, email_list
         if not employee:
             raise Exception(f"Employee with ID {employee_id} not found")
 
-        filename = generate_employee_tip_report_csv(db, employee, start_date, end_date)
+        filename = generate_employee_tip_report_csv(db, employee, start_date, end_date, current_user=None, source="scheduled_task")
         filepath = os.path.join(DATABASE_DIR, "reports", "tip_report", filename)
 
         if not os.path.exists(filepath):

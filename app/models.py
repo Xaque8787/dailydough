@@ -93,9 +93,15 @@ class DailyBalance(Base):
     day_of_week = Column(String, nullable=False)
     notes = Column(Text, nullable=True)
     finalized = Column(Boolean, default=False)
+    created_by_user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    created_by_source = Column(String, default="user")
+    edited_by_user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    finalized_at = Column(DateTime, nullable=True)
 
     employee_entries = relationship("DailyEmployeeEntry", back_populates="daily_balance", cascade="all, delete-orphan")
     financial_line_items = relationship("DailyFinancialLineItem", back_populates="daily_balance", cascade="all, delete-orphan")
+    created_by_user = relationship("User", foreign_keys=[created_by_user_id])
+    edited_by_user = relationship("User", foreign_keys=[edited_by_user_id])
 
 class DailyEmployeeEntry(Base):
     __tablename__ = "daily_employee_entries"

@@ -21,6 +21,39 @@
     {% endif %}
 </div>
 
+{% if daily_balance and daily_balance.finalized %}
+<div class="report-metadata">
+    <h4>Report Information</h4>
+    <div class="metadata-grid">
+        {% if daily_balance.created_by_source == "scheduled_task" %}
+        <div class="metadata-item">
+            <span class="metadata-label">Created By:</span>
+            <span class="metadata-value">Automated Scheduled Task</span>
+        </div>
+        {% elif daily_balance.created_by_user %}
+        <div class="metadata-item">
+            <span class="metadata-label">Created By:</span>
+            <span class="metadata-value">{{ daily_balance.created_by_user.username }}</span>
+        </div>
+        {% endif %}
+
+        {% if daily_balance.finalized_at %}
+        <div class="metadata-item">
+            <span class="metadata-label">Finalized At:</span>
+            <span class="metadata-value">{{ daily_balance.finalized_at.strftime('%B %d, %Y at %I:%M %p') }}</span>
+        </div>
+        {% endif %}
+
+        {% if daily_balance.edited_by_user %}
+        <div class="metadata-item">
+            <span class="metadata-label">Last Edited By:</span>
+            <span class="metadata-value">{{ daily_balance.edited_by_user.username }}</span>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+
 {% if daily_balance and daily_balance.finalized and not edit_mode %}
 <div class="view-mode-banner">
     <div class="banner-content">
@@ -1253,6 +1286,44 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 
 <style>
+.report-metadata {
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin: 1rem 0 2rem 0;
+}
+
+.report-metadata h4 {
+    margin: 0 0 1rem 0;
+    color: #495057;
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+.metadata-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1rem;
+}
+
+.metadata-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.metadata-label {
+    font-size: 0.875rem;
+    color: #6c757d;
+    font-weight: 500;
+}
+
+.metadata-value {
+    font-size: 1rem;
+    color: #212529;
+}
+
 .modal {
     display: none;
     position: fixed;

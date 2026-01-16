@@ -21,22 +21,38 @@ def save_daily_balance_data(
     date_obj: date_cls,
     day_of_week: str,
     form_data: dict,
-    finalized: bool = False
+    finalized: bool = False,
+    current_user: User = None,
+    source: str = "user"
 ):
     daily_balance = db.query(DailyBalance).filter(DailyBalance.date == date_obj).first()
+    is_new = daily_balance is None
 
     if not daily_balance:
         daily_balance = DailyBalance(
             date=date_obj,
             day_of_week=day_of_week,
             notes=form_data.get("notes", ""),
-            finalized=finalized
+            finalized=finalized,
+            created_by_user_id=current_user.id if current_user else None,
+            created_by_source=source,
+            finalized_at=datetime.now() if finalized else None
         )
         db.add(daily_balance)
         db.flush()
     else:
         daily_balance.notes = form_data.get("notes", "")
+        was_finalized = daily_balance.finalized
         daily_balance.finalized = finalized
+
+        if current_user:
+            daily_balance.edited_by_user_id = current_user.id
+
+        if finalized and not was_finalized:
+            daily_balance.finalized_at = datetime.now()
+            if not daily_balance.created_by_user_id and current_user:
+                daily_balance.created_by_user_id = current_user.id
+                daily_balance.created_by_source = source
 
     for entry in daily_balance.financial_line_items:
         db.delete(entry)
@@ -285,7 +301,7 @@ async def save_daily_balance_route(
     day_of_week = DAYS_OF_WEEK[date_obj.weekday()]
 
     form_data = await request.form()
-    save_daily_balance_data(db, date_obj, day_of_week, form_data, finalized=False)
+    save_daily_balance_data(db, date_obj, day_of_week, form_data, finalized=False, current_user=current_user, source="user")
 
     return RedirectResponse(url=f"/daily-balance?selected_date={target_date}", status_code=302)
 
@@ -300,9 +316,9 @@ async def finalize_daily_balance_route(
     day_of_week = DAYS_OF_WEEK[date_obj.weekday()]
 
     form_data = await request.form()
-    daily_balance = save_daily_balance_data(db, date_obj, day_of_week, form_data, finalized=True)
+    daily_balance = save_daily_balance_data(db, date_obj, day_of_week, form_data, finalized=True, current_user=current_user, source="user")
 
-    generate_daily_balance_csv(daily_balance, daily_balance.employee_entries)
+    generate_daily_balance_csv(daily_balance, daily_balance.employee_entries, current_user=current_user, source="user")
 
     return RedirectResponse(url=f"/daily-balance?selected_date={target_date}", status_code=302)
 
