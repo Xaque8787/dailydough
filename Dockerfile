@@ -26,7 +26,11 @@ COPY run_migrations.py /app/
 COPY docker-entrypoint.sh /app/
 COPY .dockerversion /app/
 
-RUN mkdir -p /app/data /app/data/scheduler /app/migrations/old && \
+RUN mkdir -p /app/data/scheduler \
+             /app/data/backups \
+             /app/data/reports/daily_report \
+             /app/data/reports/tip_report \
+             /app/migrations/old && \
     chown -R app:app /app/data /app/migrations && \
     chmod -R 755 /app/data /app/migrations && \
     chmod +x /app/docker-entrypoint.sh

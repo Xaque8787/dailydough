@@ -18,8 +18,7 @@ DATABASE_PATH = os.path.join(DATABASE_DIR, DATABASE_FILE)
 
 # Create directories if they don't exist
 for directory in [DATABASE_DIR, SCHEDULER_DIR]:
-    if not os.path.exists(directory):
-        os.makedirs(directory)
+    os.makedirs(directory, exist_ok=True)
 
 SQLALCHEMY_DATABASE_URL = f"sqlite:///{DATABASE_PATH}"
 

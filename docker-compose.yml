@@ -12,7 +12,7 @@ services:
       - RESEND_FROM_EMAIL_DAILY=${RESEND_FROM_EMAIL_DAILY:-}
       - RESEND_FROM_EMAIL_TIPS=${RESEND_FROM_EMAIL_TIPS:-}
     volumes:
-      - ./data:/app/data
+      - app_data:/app/data
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5710/"]
@@ -20,3 +20,6 @@ services:
       timeout: 3s
       retries: 3
       start_period: 10s
+
+volumes:
+  app_data:
