@@ -70,16 +70,16 @@ def get_next_run_times(schedule_type, cron_expression=None, interval_value=None,
                 timezone=tz
             )
 
-            # Calculate next runs by advancing the reference time properly
-            reference_time = now
+            # Calculate next runs by passing previous fire time to get_next_fire_time
+            # This lets APScheduler handle DST transitions properly
+            previous_fire_time = None
 
             for _ in range(count):
-                next_run = trigger.get_next_fire_time(None, reference_time)
+                next_run = trigger.get_next_fire_time(previous_fire_time, now)
                 if next_run:
                     next_runs.append(next_run)
-                    # Advance reference time to just after the found run
-                    # Use 1 minute increment and normalize to handle DST transitions
-                    reference_time = tz.normalize(next_run + timedelta(minutes=1))
+                    # Set this as the previous fire time for the next iteration
+                    previous_fire_time = next_run
                 else:
                     break
 
