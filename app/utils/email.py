@@ -162,7 +162,7 @@ def generate_tip_report_html(report_data: Dict[str, Any]) -> str:
                 html += f'<td>{entry.get("employee_name", "")}</td>'
                 html += f'<td>{entry.get("position", "")}</td>'
                 for field in entry.get('fields', []):
-                    html += f'<td class="text-right">{field.get("value", "")}</td>'
+                    html += f'<td>{field.get("value", "")}</td>'
                 html += '</tr>'
 
             html += '</tbody></table>'
@@ -185,7 +185,7 @@ def generate_tip_report_html(report_data: Dict[str, Any]) -> str:
                     html += f'<td>{entry.get("date", "")}</td>'
                     html += f'<td>{entry.get("day", "")}</td>'
                     for field in entry.get('fields', []):
-                        html += f'<td class="text-right">{field.get("value", "")}</td>'
+                        html += f'<td>{field.get("value", "")}</td>'
                     html += '</tr>'
 
                 html += '</tbody></table>'
