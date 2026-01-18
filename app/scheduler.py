@@ -60,32 +60,31 @@ def get_next_run_times(schedule_type, cron_expression=None, interval_value=None,
             if len(parts) != 5:
                 return []
 
+            # Use UTC for cron calculations to avoid DST issues
+            utc_tz = pytz.UTC
             trigger = CronTrigger(
                 minute=parts[0],
                 hour=parts[1],
                 day=parts[2],
                 month=parts[3],
                 day_of_week=parts[4],
-                timezone=tz
+                timezone=utc_tz
             )
 
-            # Calculate next runs by advancing far enough to avoid DST issues
-            # Start from current time and search forward in daily increments
-            search_start = now
-            attempts = 0
-            max_attempts = 1000  # Prevent infinite loops
+            # Convert current time to UTC for calculation
+            now_utc = datetime.now(utc_tz)
+            reference_time = now_utc
 
-            while len(next_runs) < count and attempts < max_attempts:
-                next_run = trigger.get_next_fire_time(None, search_start)
+            for _ in range(count):
+                next_run = trigger.get_next_fire_time(None, reference_time)
                 if next_run:
-                    # Avoid duplicates
-                    if not next_runs or next_run > next_runs[-1]:
-                        next_runs.append(next_run)
-                    # Move search forward by at least 1 day to find the next occurrence
-                    search_start = next_run + timedelta(days=1)
+                    # Convert from UTC to local timezone for display
+                    next_run_local = next_run.astimezone(tz)
+                    next_runs.append(next_run_local)
+                    # Move reference forward by 1 second
+                    reference_time = next_run + timedelta(seconds=1)
                 else:
                     break
-                attempts += 1
 
         elif schedule_type == 'interval':
             # Parse start date
