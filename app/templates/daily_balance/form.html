@@ -1232,10 +1232,17 @@ async function submitFinalize() {
                     emailFormData.append('start_date', targetDate);
                     emailFormData.append('end_date', targetDate);
 
-                    await fetch('/reports/daily-balance/email', {
+                    const emailResponse = await fetch('/reports/daily-balance/email', {
                         method: 'POST',
                         body: emailFormData
                     });
+
+                    const emailResult = await emailResponse.json();
+                    if (emailResult.success) {
+                        alert(emailResult.message);
+                    } else {
+                        alert('Warning: ' + emailResult.message);
+                    }
                 }
             }
 
