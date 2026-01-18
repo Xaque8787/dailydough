@@ -496,7 +496,7 @@ def parse_daily_balance_csv(filepath: str) -> Dict[str, Any]:
                     }
 
                     for j in range(2, len(employee_headers)):
-                        if j < len(rows[i]):
+                        if j < len(rows[i]) and employee_headers[j].strip():
                             employee_entry['fields'].append({
                                 'name': employee_headers[j].strip(),
                                 'value': rows[i][j].strip()
