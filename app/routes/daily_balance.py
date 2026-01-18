@@ -186,7 +186,9 @@ def serialize_employee(emp, db):
                     "include_in_payroll_summary": req.include_in_payroll_summary
                 } for req in emp.position.tip_requirements
             ]
-        }
+        },
+        "position_name_sort_key": emp.position.name,
+        "display_name_sort_key": emp.display_name
     }
 
 @router.get("/daily-balance", response_class=HTMLResponse)
@@ -209,6 +211,9 @@ async def daily_balance_page(
     daily_balance = db.query(DailyBalance).filter(DailyBalance.date == target_date).first()
 
     all_employees = db.query(Employee).all()
+    # Sort all employees by position name, then by display name
+    all_employees = sorted(all_employees, key=lambda emp: (emp.position.name, emp.display_name))
+
     scheduled_employees = [emp for emp in all_employees if day_of_week in emp.scheduled_days]
 
     employee_entries = {}
@@ -221,6 +226,9 @@ async def daily_balance_page(
         working_employees = [entry.employee for entry in daily_balance.employee_entries]
     else:
         working_employees = scheduled_employees
+
+    # Sort employees by position name, then by display name
+    working_employees = sorted(working_employees, key=lambda emp: (emp.position.name, emp.display_name))
 
     for emp in working_employees:
         attach_display_orders_to_employee(emp, db)
