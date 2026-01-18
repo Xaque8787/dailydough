@@ -78,8 +78,8 @@ def get_next_run_times(schedule_type, cron_expression=None, interval_value=None,
                 if next_run:
                     next_runs.append(next_run)
                     # Advance reference time to just after the found run
-                    # Use 1 hour increment to safely skip over current match and handle DST
-                    reference_time = next_run + timedelta(hours=1)
+                    # Use 1 minute increment and normalize to handle DST transitions
+                    reference_time = tz.normalize(next_run + timedelta(minutes=1))
                 else:
                     break
 
