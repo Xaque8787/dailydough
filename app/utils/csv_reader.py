@@ -162,8 +162,10 @@ def parse_tip_report_csv(filepath: str) -> Dict[str, Any]:
                     })
             elif row and len(row) > 0 and row[0] == "Summary":
                 summary_fields = []
-                for j in range(i + 1, len(rows)):
+                for j in range(i + 2, len(rows)):
                     if not rows[j] or len(rows[j]) < 2:
+                        break
+                    if rows[j][0] in ['Daily Breakdown', '']:
                         break
                     key = rows[j][0].strip()
                     value = rows[j][1].strip()
@@ -179,7 +181,6 @@ def parse_tip_report_csv(filepath: str) -> Dict[str, Any]:
                         'position': employee_position,
                         'fields': summary_fields
                     })
-                break
 
         for i, row in enumerate(rows):
             if row and len(row) > 0 and row[0] == "Daily Breakdown":
