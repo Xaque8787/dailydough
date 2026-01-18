@@ -644,6 +644,18 @@ function attachEmployeeInputListeners(container) {
             calculateEmployeeTipTotals(employeeId);
             updateEmployeeTipsInFinancialTables();
         });
+        // Add select-on-focus behavior
+        input.addEventListener('focus', function() {
+            this.select();
+        });
+    });
+}
+
+function addSelectOnFocusBehavior(inputs) {
+    inputs.forEach(input => {
+        input.addEventListener('focus', function() {
+            this.select();
+        });
     });
 }
 
@@ -839,6 +851,10 @@ async function addFinancialTemplate() {
 
         const inputField = newRow.querySelector(`.${fieldClass}`);
         inputField.addEventListener('input', calculateFinancialTotals);
+        // Add select-on-focus behavior to the new input
+        inputField.addEventListener('focus', function() {
+            this.select();
+        });
 
         nameInput.value = '';
         isDeductionInput.checked = false;
@@ -1260,9 +1276,13 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log('=== Page loaded, initializing ===');
     updateAddEmployeeDropdown();
 
+    // Add input listeners and select-on-focus for financial fields
     document.querySelectorAll('.table1-field, .table2-field').forEach(field => {
         field.addEventListener('input', calculateFinancialTotals);
     });
+
+    // Add select-on-focus to all number inputs (financial and employee)
+    addSelectOnFocusBehavior(document.querySelectorAll('.table1-field, .table2-field, .tip-input'));
 
     document.querySelectorAll('.employee-entry').forEach(entry => {
         attachEmployeeInputListeners(entry);
