@@ -3,24 +3,33 @@ document.addEventListener('DOMContentLoaded', function() {
     const navLinks = document.getElementById('navLinks');
 
     if (navbarToggle && navLinks) {
-        let touchHandled = false;
+        let lastTap = 0;
 
-        function toggleMenu(e) {
-            e.preventDefault();
-            e.stopPropagation();
+        function toggleMenu() {
             navbarToggle.classList.toggle('active');
             navLinks.classList.toggle('active');
         }
 
-        navbarToggle.addEventListener('touchstart', function(e) {
-            touchHandled = true;
-            toggleMenu(e);
-            setTimeout(function() { touchHandled = false; }, 300);
+        navbarToggle.addEventListener('touchend', function(e) {
+            e.preventDefault();
+            const currentTime = new Date().getTime();
+            const tapLength = currentTime - lastTap;
+
+            if (tapLength < 500 && tapLength > 0) {
+                return;
+            }
+
+            lastTap = currentTime;
+            toggleMenu();
         }, { passive: false });
 
         navbarToggle.addEventListener('click', function(e) {
-            if (!touchHandled) {
-                toggleMenu(e);
+            const currentTime = new Date().getTime();
+            const timeSinceTouch = currentTime - lastTap;
+
+            if (timeSinceTouch > 500 || timeSinceTouch === currentTime) {
+                e.preventDefault();
+                toggleMenu();
             }
         });
 
