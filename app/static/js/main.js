@@ -3,11 +3,25 @@ document.addEventListener('DOMContentLoaded', function() {
     const navLinks = document.getElementById('navLinks');
 
     if (navbarToggle && navLinks) {
-        navbarToggle.addEventListener('click', function(e) {
+        let touchHandled = false;
+
+        function toggleMenu(e) {
             e.preventDefault();
             e.stopPropagation();
             navbarToggle.classList.toggle('active');
             navLinks.classList.toggle('active');
+        }
+
+        navbarToggle.addEventListener('touchstart', function(e) {
+            touchHandled = true;
+            toggleMenu(e);
+            setTimeout(function() { touchHandled = false; }, 300);
+        }, { passive: false });
+
+        navbarToggle.addEventListener('click', function(e) {
+            if (!touchHandled) {
+                toggleMenu(e);
+            }
         });
 
         navLinks.querySelectorAll('a').forEach(link => {
