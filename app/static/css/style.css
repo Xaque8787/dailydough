@@ -62,7 +62,7 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: #ffeecc;
 }
 
 .login-box {
@@ -72,6 +72,13 @@ body {
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     width: 100%;
     max-width: 400px;
+}
+
+.login-logo {
+    display: block;
+    width: 128px;
+    height: 128px;
+    margin: 0 auto 1rem auto;
 }
 
 .login-box h1 {
