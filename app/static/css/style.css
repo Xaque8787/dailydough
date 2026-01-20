@@ -53,7 +53,6 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    width: 100%;
 }
 
 .navbar-toggle {
@@ -91,13 +90,6 @@ body {
     display: flex;
     list-style: none;
     gap: 0.5rem;
-    max-height: none;
-}
-
-@media (min-width: 769px) {
-    .navbar-header {
-        width: auto;
-    }
 }
 
 .nav-links a {
@@ -842,6 +834,10 @@ textarea[readonly] {
         align-items: stretch;
     }
 
+    .navbar-header {
+        width: 100%;
+    }
+
     .navbar-toggle {
         display: flex;
     }
@@ -853,6 +849,7 @@ textarea[readonly] {
         max-height: 0;
         overflow: hidden;
         transition: max-height 0.3s ease;
+        margin: 0;
     }
 
     .nav-links.active {
