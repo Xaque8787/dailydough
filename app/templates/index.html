@@ -8,6 +8,13 @@
         <p class="current-date">{{ current_date }} - {{ day_of_week }}</p>
     </div>
 
+    <div class="version-info">
+        <span class="version">v{{ version }}</span>
+        {% if update_available %}
+        <span class="update-badge">Update Available</span>
+        {% endif %}
+    </div>
+
     <div class="dashboard-cards">
         <a href="/daily-balance" class="dashboard-card">
             <h3>Daily Balance</h3>

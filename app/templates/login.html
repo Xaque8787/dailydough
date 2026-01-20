@@ -31,6 +31,13 @@
 
                 <button type="submit" class="btn btn-primary">Login</button>
             </form>
+
+            <div class="version-info" style="text-align: center; margin-top: 20px; color: #666;">
+                <span class="version">v{{ version }}</span>
+                {% if update_available %}
+                <span class="update-badge" style="background: #ff9800; color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.85em; margin-left: 8px;">Update Available</span>
+                {% endif %}
+            </div>
         </div>
     </div>
 </body>

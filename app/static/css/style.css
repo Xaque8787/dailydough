@@ -315,6 +315,27 @@ body {
     color: #7f8c8d;
 }
 
+.version-info {
+    text-align: center;
+    margin: 1rem 0;
+    color: #666;
+    font-size: 0.9rem;
+}
+
+.version-info .version {
+    color: #666;
+}
+
+.version-info .update-badge {
+    background: #ff9800;
+    color: white;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.85em;
+    margin-left: 8px;
+    display: inline-block;
+}
+
 .dashboard-cards {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
