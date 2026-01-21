@@ -1323,11 +1323,15 @@ function validateFormBeforeSubmit(event, isForFinalize) {
     });
 
     document.querySelectorAll('.table1-field, .table2-field').forEach(field => {
-        if (field.value === '' || field.value === null) {
+        if (!field.classList.contains('calculated-field') && (field.value === '' || field.value === null)) {
             const row = field.closest('tr');
-            const label = row.querySelector('td:first-child');
-            const fieldName = label ? label.textContent.trim() : 'Unknown field';
-            errors.push(`Financial item "${fieldName}" cannot be blank. Enter 0 if the value is zero.`);
+            const label = row.querySelector('td:first-child .item-name-display, td:first-child label');
+            let fieldName = 'Unknown field';
+            if (label) {
+                const textContent = label.textContent.trim();
+                fieldName = textContent.split('(')[0].trim();
+            }
+            errors.push(`• ${fieldName}`);
             field.classList.add('field-error-highlight');
             invalidFields.push(field);
         }
@@ -1337,19 +1341,24 @@ function validateFormBeforeSubmit(event, isForFinalize) {
         if (field.value === '' || field.value === null) {
             const formGroup = field.closest('.form-group');
             const label = formGroup ? formGroup.querySelector('label') : null;
-            const fieldName = label ? label.textContent.trim() : 'Unknown field';
+            let fieldName = 'Unknown field';
+            if (label) {
+                const textContent = label.textContent.trim();
+                fieldName = textContent.replace('*', '').trim();
+            }
             const employeeEntry = field.closest('.employee-entry');
             const employeeHeader = employeeEntry ? employeeEntry.querySelector('.employee-entry-header h4') : null;
             const employeeName = employeeHeader ? employeeHeader.textContent.trim() : 'Unknown employee';
 
-            errors.push(`${employeeName} - "${fieldName}" cannot be blank. Enter 0 if the value is zero.`);
+            errors.push(`• ${employeeName} - ${fieldName}`);
             field.classList.add('field-error-highlight');
             invalidFields.push(field);
         }
     });
 
     if (errors.length > 0) {
-        const errorMessage = 'Please fix the following errors:\n\n' + errors.join('\n');
+        let errorMessage = `Found ${errors.length} field(s) that cannot be blank. Enter 0 if the value is zero.\n\nFields requiring attention:\n\n`;
+        errorMessage += errors.join('\n');
         alert(errorMessage);
 
         if (invalidFields.length > 0) {
