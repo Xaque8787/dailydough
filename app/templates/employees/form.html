@@ -52,8 +52,8 @@
 
 <script>
 const positions = {{ positions | tojson }};
-{% if employee and employee.position_schedules %}
-const existingSchedules = {{ employee.position_schedules | tojson }};
+{% if employee_schedules is defined and employee_schedules %}
+const existingSchedules = {{ employee_schedules | tojson }};
 {% else %}
 const existingSchedules = [];
 {% endif %}

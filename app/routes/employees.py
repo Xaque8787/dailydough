@@ -31,9 +31,10 @@ async def new_employee_page(
     current_user: User = Depends(get_current_user)
 ):
     positions = db.query(Position).all()
+    positions_data = [{"id": p.id, "name": p.name} for p in positions]
     return templates.TemplateResponse(
         "employees/form.html",
-        {"request": request, "employee": None, "positions": positions, "current_user": current_user}
+        {"request": request, "employee": None, "positions": positions_data, "current_user": current_user}
     )
 
 @router.post("/employees/new")
@@ -41,7 +42,7 @@ async def create_employee(
     request: Request,
     first_name: str = Form(...),
     last_name: str = Form(...),
-    is_active: bool = Form(True),
+    is_active: Optional[str] = Form(None),
     position_schedules: str = Form(...),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
@@ -59,7 +60,7 @@ async def create_employee(
         first_name=first_name,
         last_name=last_name,
         slug=slug,
-        is_active=is_active
+        is_active=(is_active == "true" if is_active else True)
     )
     db.add(new_employee)
     db.flush()
@@ -103,9 +104,25 @@ async def edit_employee_page(
         raise HTTPException(status_code=404, detail="Employee not found")
 
     positions = db.query(Position).all()
+    positions_data = [{"id": p.id, "name": p.name} for p in positions]
+
+    employee_schedules = [
+        {
+            "position_id": schedule.position_id,
+            "days_of_week": schedule.days_of_week or []
+        }
+        for schedule in employee.position_schedules
+    ]
+
     return templates.TemplateResponse(
         "employees/form.html",
-        {"request": request, "employee": employee, "positions": positions, "current_user": current_user}
+        {
+            "request": request,
+            "employee": employee,
+            "positions": positions_data,
+            "employee_schedules": employee_schedules,
+            "current_user": current_user
+        }
     )
 
 @router.post("/employees/{slug}/edit")
@@ -114,7 +131,7 @@ async def update_employee(
     request: Request,
     first_name: str = Form(...),
     last_name: str = Form(...),
-    is_active: bool = Form(True),
+    is_active: Optional[str] = Form(None),
     position_schedules: str = Form(...),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
@@ -132,7 +149,7 @@ async def update_employee(
     employee.name = full_name
     employee.first_name = first_name
     employee.last_name = last_name
-    employee.is_active = is_active
+    employee.is_active = (is_active == "true" if is_active else False)
 
     db.query(EmployeePositionSchedule).filter(
         EmployeePositionSchedule.employee_id == employee.id
