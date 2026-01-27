@@ -143,7 +143,8 @@ def save_daily_balance_data(
                         value=value if not req.revenue_is_deduction else -value,
                         display_order=max_order,
                         is_employee_tip=True,
-                        employee_id=emp_id
+                        employee_id=emp_id,
+                        employee_name_snapshot=employee.display_name
                     )
                     db.add(tip_line_item)
 
@@ -157,7 +158,8 @@ def save_daily_balance_data(
                         value=value if not req.expense_is_deduction else -value,
                         display_order=max_order,
                         is_employee_tip=True,
-                        employee_id=emp_id
+                        employee_id=emp_id,
+                        employee_name_snapshot=employee.display_name
                     )
                     db.add(tip_line_item)
 
@@ -185,7 +187,9 @@ def save_daily_balance_data(
             daily_balance_id=daily_balance.id,
             employee_id=emp_id,
             position_id=pos_id,
-            tip_values=tip_values
+            tip_values=tip_values,
+            employee_name_snapshot=employee.display_name,
+            position_name_snapshot=position.name
         )
         db.add(entry)
 
