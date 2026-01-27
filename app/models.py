@@ -121,9 +121,11 @@ class DailyEmployeeEntry(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     daily_balance_id = Column(Integer, ForeignKey("daily_balance.id"), nullable=False)
-    employee_id = Column(Integer, ForeignKey("employees.id"), nullable=False)
+    employee_id = Column(Integer, ForeignKey("employees.id"), nullable=True)
     position_id = Column(Integer, ForeignKey("positions.id"), nullable=True)
     tip_values = Column(JSON, default=dict)
+    employee_name_snapshot = Column(String, nullable=True)
+    position_name_snapshot = Column(String, nullable=True)
 
     daily_balance = relationship("DailyBalance", back_populates="employee_entries")
     employee = relationship("Employee", back_populates="daily_entries")
@@ -133,6 +135,20 @@ class DailyEmployeeEntry(Base):
         if self.tip_values and isinstance(self.tip_values, dict):
             return self.tip_values.get(field_name, default)
         return default
+
+    @property
+    def employee_display_name(self):
+        """Return employee name, preferring snapshot for deleted employees."""
+        if self.employee:
+            return self.employee.display_name
+        return self.employee_name_snapshot or "Unknown Employee"
+
+    @property
+    def position_display_name(self):
+        """Return position name, preferring snapshot for deleted positions."""
+        if self.position:
+            return self.position.name
+        return self.position_name_snapshot or "Unknown Position"
 
 class FinancialLineItemTemplate(Base):
     __tablename__ = "financial_line_item_templates"
@@ -160,10 +176,18 @@ class DailyFinancialLineItem(Base):
     display_order = Column(Integer, default=0)
     is_employee_tip = Column(Boolean, default=False)
     employee_id = Column(Integer, ForeignKey("employees.id"), nullable=True)
+    employee_name_snapshot = Column(String, nullable=True)
 
     daily_balance = relationship("DailyBalance", back_populates="financial_line_items")
     template = relationship("FinancialLineItemTemplate", back_populates="daily_line_items")
     employee = relationship("Employee")
+
+    @property
+    def employee_display_name(self):
+        """Return employee name, preferring snapshot for deleted employees."""
+        if self.employee:
+            return self.employee.display_name
+        return self.employee_name_snapshot or "Unknown Employee"
 
 class ScheduledTask(Base):
     __tablename__ = "scheduled_tasks"

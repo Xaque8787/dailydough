@@ -169,12 +169,44 @@ async def update_employee(
 @router.post("/employees/{slug}/delete")
 async def delete_employee(
     slug: str,
+    request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
+    from app.models import DailyEmployeeEntry, DailyFinancialLineItem, ScheduledTask, Position
+
     employee = db.query(Employee).filter(Employee.slug == slug).first()
     if not employee:
         raise HTTPException(status_code=404, detail="Employee not found")
+
+    daily_entries = db.query(DailyEmployeeEntry).filter(
+        DailyEmployeeEntry.employee_id == employee.id
+    ).all()
+
+    for entry in daily_entries:
+        if not entry.employee_name_snapshot:
+            entry.employee_name_snapshot = employee.display_name
+        if not entry.position_name_snapshot and entry.position_id:
+            position = db.query(Position).filter(Position.id == entry.position_id).first()
+            if position:
+                entry.position_name_snapshot = position.name
+        entry.employee_id = None
+
+    financial_items = db.query(DailyFinancialLineItem).filter(
+        DailyFinancialLineItem.employee_id == employee.id
+    ).all()
+
+    for item in financial_items:
+        if not item.employee_name_snapshot:
+            item.employee_name_snapshot = employee.display_name
+        item.employee_id = None
+
+    scheduled_tasks = db.query(ScheduledTask).filter(
+        ScheduledTask.employee_id == employee.id
+    ).all()
+
+    for task in scheduled_tasks:
+        task.employee_id = None
 
     db.delete(employee)
     db.commit()

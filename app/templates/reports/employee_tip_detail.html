@@ -60,7 +60,7 @@
 
             <div class="summary-cards">
                 {% for field_name, total in pos_data.tip_totals.items() %}
-                    {% set req = [r for r in pos_data.position.tip_requirements if r.field_name == field_name][0] %}
+                    {% set req = pos_data.position.tip_requirements | selectattr('field_name', 'equalto', field_name) | first %}
                     <div class="summary-card {% if req.is_total %}highlight{% endif %}">
                         <h3>Total {{ req.name }}</h3>
                         <p class="summary-value">${{ "%.2f"|format(total) }}</p>
