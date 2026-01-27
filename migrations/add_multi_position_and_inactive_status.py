@@ -115,7 +115,53 @@ def migrate():
         else:
             print("✓ position_id column already exists in daily_employee_entries")
 
-        # Step 5: Verify migration
+        # Step 5: Make position_id nullable in employees table
+        # SQLite doesn't support ALTER COLUMN, so we need to recreate the table
+        print("\nMaking position_id nullable in employees table...")
+
+        # Check if position_id is already nullable by checking if we can insert NULL
+        try:
+            cursor.execute("SELECT sql FROM sqlite_master WHERE type='table' AND name='employees'")
+            table_sql = cursor.fetchone()[0]
+
+            # If position_id is NOT NULL, we need to recreate the table
+            if 'position_id INTEGER NOT NULL' in table_sql or 'position_id" INTEGER NOT NULL' in table_sql:
+                print("  Recreating employees table to make position_id nullable...")
+
+                # Create temporary table with new schema
+                cursor.execute("""
+                    CREATE TABLE employees_new (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        name VARCHAR NOT NULL,
+                        first_name VARCHAR,
+                        last_name VARCHAR,
+                        slug VARCHAR NOT NULL UNIQUE,
+                        is_active BOOLEAN DEFAULT 1,
+                        position_id INTEGER,
+                        scheduled_days TEXT,
+                        FOREIGN KEY (position_id) REFERENCES positions(id)
+                    )
+                """)
+
+                # Copy data from old table
+                cursor.execute("""
+                    INSERT INTO employees_new (id, name, first_name, last_name, slug, is_active, position_id, scheduled_days)
+                    SELECT id, name, first_name, last_name, slug, is_active, position_id, scheduled_days
+                    FROM employees
+                """)
+
+                # Drop old table and rename new one
+                cursor.execute("DROP TABLE employees")
+                cursor.execute("ALTER TABLE employees_new RENAME TO employees")
+
+                print("  ✓ Employees table recreated with nullable position_id")
+            else:
+                print("  ✓ position_id is already nullable")
+        except Exception as e:
+            print(f"  Warning: Could not make position_id nullable: {e}")
+            print("  Continuing anyway - new employees may fail to save until this is fixed")
+
+        # Step 6: Verify migration
         cursor.execute("SELECT COUNT(*) FROM employee_position_schedule")
         schedule_count = cursor.fetchone()[0]
         print(f"\n✓ Total employee_position_schedule records: {schedule_count}")
