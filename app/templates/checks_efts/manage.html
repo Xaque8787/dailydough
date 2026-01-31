@@ -1,0 +1,528 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Checks & EFT Values{% endblock %}
+
+{% block content %}
+<div class="content-header">
+    <h2>Manage Checks & EFT Values</h2>
+    <p>Create and manage predefined values for checks and EFT transactions</p>
+</div>
+
+<div class="manage-sections">
+    <div class="manage-section">
+        <div class="section-header">
+            <h3>Check Payees</h3>
+            <button type="button" class="btn btn-primary" onclick="showAddModal('check-payee')">+ Add Payee</button>
+        </div>
+        <div class="values-list" id="check-payees-list">
+            <div class="loading">Loading...</div>
+        </div>
+    </div>
+
+    <div class="manage-section">
+        <div class="section-header">
+            <h3>EFT Card Numbers</h3>
+            <button type="button" class="btn btn-primary" onclick="showAddModal('eft-card')">+ Add Card Number</button>
+        </div>
+        <div class="values-list" id="eft-cards-list">
+            <div class="loading">Loading...</div>
+        </div>
+    </div>
+
+    <div class="manage-section">
+        <div class="section-header">
+            <h3>EFT Payees</h3>
+            <button type="button" class="btn btn-primary" onclick="showAddModal('eft-payee')">+ Add Payee</button>
+        </div>
+        <div class="values-list" id="eft-payees-list">
+            <div class="loading">Loading...</div>
+        </div>
+    </div>
+</div>
+
+<div id="modal-overlay" class="modal-overlay" onclick="closeModal()"></div>
+<div id="modal-container" class="modal-container">
+    <div class="modal-header">
+        <h3 id="modal-title">Add Value</h3>
+        <button type="button" class="btn-close" onclick="closeModal()">&times;</button>
+    </div>
+    <div class="modal-body">
+        <form id="value-form" onsubmit="return handleSubmit(event)">
+            <input type="hidden" id="value-id">
+            <input type="hidden" id="value-type">
+            <div class="form-group">
+                <label id="value-label">Value</label>
+                <input type="text" id="value-input" class="form-control" required>
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+                <button type="submit" class="btn btn-primary">Save</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+.manage-sections {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+    gap: 2rem;
+    margin-top: 2rem;
+}
+
+.manage-section {
+    background: white;
+    border-radius: 8px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid #f3f4f6;
+}
+
+.section-header h3 {
+    margin: 0;
+    color: #1f2937;
+    font-size: 1.25rem;
+}
+
+.values-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.value-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    background: #f9fafb;
+    border-radius: 6px;
+    border: 1px solid #e5e7eb;
+    transition: all 0.2s;
+}
+
+.value-item:hover {
+    background: #f3f4f6;
+    border-color: #d1d5db;
+}
+
+.value-name {
+    flex: 1;
+    font-weight: 500;
+    color: #374151;
+}
+
+.value-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.btn-icon {
+    padding: 0.25rem 0.5rem;
+    background: transparent;
+    border: none;
+    color: #6b7280;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all 0.2s;
+}
+
+.btn-icon:hover {
+    background: #e5e7eb;
+    color: #374151;
+}
+
+.btn-icon.btn-edit:hover {
+    color: #3b82f6;
+}
+
+.btn-icon.btn-delete:hover {
+    color: #ef4444;
+}
+
+.loading {
+    text-align: center;
+    color: #9ca3af;
+    padding: 2rem;
+}
+
+.empty-state {
+    text-align: center;
+    color: #9ca3af;
+    padding: 2rem;
+    font-style: italic;
+}
+
+.modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+}
+
+.modal-overlay.active {
+    display: block;
+}
+
+.modal-container {
+    display: none;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    z-index: 1001;
+    width: 90%;
+    max-width: 500px;
+}
+
+.modal-container.active {
+    display: block;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.5rem;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.modal-header h3 {
+    margin: 0;
+    color: #1f2937;
+}
+
+.btn-close {
+    background: transparent;
+    border: none;
+    font-size: 1.5rem;
+    color: #9ca3af;
+    cursor: pointer;
+    padding: 0;
+    width: 2rem;
+    height: 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    transition: all 0.2s;
+}
+
+.btn-close:hover {
+    background: #f3f4f6;
+    color: #374151;
+}
+
+.modal-body {
+    padding: 1.5rem;
+}
+
+.modal-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: flex-end;
+    margin-top: 1.5rem;
+}
+</style>
+
+<script>
+let checkPayees = [];
+let eftCards = [];
+let eftPayees = [];
+
+async function loadAllData() {
+    await Promise.all([
+        loadCheckPayees(),
+        loadEFTCards(),
+        loadEFTPayees()
+    ]);
+}
+
+async function loadCheckPayees() {
+    try {
+        const response = await fetch('/api/checks-efts/check-payees');
+        if (!response.ok) throw new Error('Failed to load');
+        checkPayees = await response.json();
+        renderCheckPayees();
+    } catch (error) {
+        console.error('Error loading check payees:', error);
+        document.getElementById('check-payees-list').innerHTML = '<div class="empty-state">Error loading data</div>';
+    }
+}
+
+async function loadEFTCards() {
+    try {
+        const response = await fetch('/api/checks-efts/eft-card-numbers');
+        if (!response.ok) throw new Error('Failed to load');
+        eftCards = await response.json();
+        renderEFTCards();
+    } catch (error) {
+        console.error('Error loading EFT cards:', error);
+        document.getElementById('eft-cards-list').innerHTML = '<div class="empty-state">Error loading data</div>';
+    }
+}
+
+async function loadEFTPayees() {
+    try {
+        const response = await fetch('/api/checks-efts/eft-payees');
+        if (!response.ok) throw new Error('Failed to load');
+        eftPayees = await response.json();
+        renderEFTPayees();
+    } catch (error) {
+        console.error('Error loading EFT payees:', error);
+        document.getElementById('eft-payees-list').innerHTML = '<div class="empty-state">Error loading data</div>';
+    }
+}
+
+function renderCheckPayees() {
+    const list = document.getElementById('check-payees-list');
+    if (checkPayees.length === 0) {
+        list.innerHTML = '<div class="empty-state">No check payees defined yet</div>';
+        return;
+    }
+    list.innerHTML = checkPayees.map(p => `
+        <div class="value-item">
+            <span class="value-name">${escapeHtml(p.name)}</span>
+            <div class="value-actions">
+                <button class="btn-icon btn-edit" onclick="editCheckPayee(${p.id})" title="Edit">✎</button>
+                <button class="btn-icon btn-delete" onclick="deleteCheckPayee(${p.id})" title="Delete">✕</button>
+            </div>
+        </div>
+    `).join('');
+}
+
+function renderEFTCards() {
+    const list = document.getElementById('eft-cards-list');
+    if (eftCards.length === 0) {
+        list.innerHTML = '<div class="empty-state">No EFT card numbers defined yet</div>';
+        return;
+    }
+    list.innerHTML = eftCards.map(c => `
+        <div class="value-item">
+            <span class="value-name">${escapeHtml(c.number)}</span>
+            <div class="value-actions">
+                <button class="btn-icon btn-edit" onclick="editEFTCard(${c.id})" title="Edit">✎</button>
+                <button class="btn-icon btn-delete" onclick="deleteEFTCard(${c.id})" title="Delete">✕</button>
+            </div>
+        </div>
+    `).join('');
+}
+
+function renderEFTPayees() {
+    const list = document.getElementById('eft-payees-list');
+    if (eftPayees.length === 0) {
+        list.innerHTML = '<div class="empty-state">No EFT payees defined yet</div>';
+        return;
+    }
+    list.innerHTML = eftPayees.map(p => `
+        <div class="value-item">
+            <span class="value-name">${escapeHtml(p.name)}</span>
+            <div class="value-actions">
+                <button class="btn-icon btn-edit" onclick="editEFTPayee(${p.id})" title="Edit">✎</button>
+                <button class="btn-icon btn-delete" onclick="deleteEFTPayee(${p.id})" title="Delete">✕</button>
+            </div>
+        </div>
+    `).join('');
+}
+
+function showAddModal(type) {
+    document.getElementById('value-id').value = '';
+    document.getElementById('value-type').value = type;
+    document.getElementById('value-input').value = '';
+
+    if (type === 'check-payee') {
+        document.getElementById('modal-title').textContent = 'Add Check Payee';
+        document.getElementById('value-label').textContent = 'Payee Name';
+    } else if (type === 'eft-card') {
+        document.getElementById('modal-title').textContent = 'Add EFT Card Number';
+        document.getElementById('value-label').textContent = 'Card Number';
+    } else if (type === 'eft-payee') {
+        document.getElementById('modal-title').textContent = 'Add EFT Payee';
+        document.getElementById('value-label').textContent = 'Payee Name';
+    }
+
+    document.getElementById('modal-overlay').classList.add('active');
+    document.getElementById('modal-container').classList.add('active');
+    document.getElementById('value-input').focus();
+}
+
+function editCheckPayee(id) {
+    const payee = checkPayees.find(p => p.id === id);
+    if (!payee) return;
+
+    document.getElementById('value-id').value = id;
+    document.getElementById('value-type').value = 'check-payee';
+    document.getElementById('value-input').value = payee.name;
+    document.getElementById('modal-title').textContent = 'Edit Check Payee';
+    document.getElementById('value-label').textContent = 'Payee Name';
+
+    document.getElementById('modal-overlay').classList.add('active');
+    document.getElementById('modal-container').classList.add('active');
+    document.getElementById('value-input').focus();
+}
+
+function editEFTCard(id) {
+    const card = eftCards.find(c => c.id === id);
+    if (!card) return;
+
+    document.getElementById('value-id').value = id;
+    document.getElementById('value-type').value = 'eft-card';
+    document.getElementById('value-input').value = card.number;
+    document.getElementById('modal-title').textContent = 'Edit EFT Card Number';
+    document.getElementById('value-label').textContent = 'Card Number';
+
+    document.getElementById('modal-overlay').classList.add('active');
+    document.getElementById('modal-container').classList.add('active');
+    document.getElementById('value-input').focus();
+}
+
+function editEFTPayee(id) {
+    const payee = eftPayees.find(p => p.id === id);
+    if (!payee) return;
+
+    document.getElementById('value-id').value = id;
+    document.getElementById('value-type').value = 'eft-payee';
+    document.getElementById('value-input').value = payee.name;
+    document.getElementById('modal-title').textContent = 'Edit EFT Payee';
+    document.getElementById('value-label').textContent = 'Payee Name';
+
+    document.getElementById('modal-overlay').classList.add('active');
+    document.getElementById('modal-container').classList.add('active');
+    document.getElementById('value-input').focus();
+}
+
+async function deleteCheckPayee(id) {
+    if (!confirm('Delete this check payee?')) return;
+
+    try {
+        const response = await fetch(`/api/checks-efts/check-payees/${id}`, {
+            method: 'DELETE'
+        });
+
+        if (!response.ok) throw new Error('Failed to delete');
+
+        await loadCheckPayees();
+    } catch (error) {
+        alert('Error deleting check payee: ' + error.message);
+    }
+}
+
+async function deleteEFTCard(id) {
+    if (!confirm('Delete this EFT card number?')) return;
+
+    try {
+        const response = await fetch(`/api/checks-efts/eft-card-numbers/${id}`, {
+            method: 'DELETE'
+        });
+
+        if (!response.ok) throw new Error('Failed to delete');
+
+        await loadEFTCards();
+    } catch (error) {
+        alert('Error deleting EFT card number: ' + error.message);
+    }
+}
+
+async function deleteEFTPayee(id) {
+    if (!confirm('Delete this EFT payee?')) return;
+
+    try {
+        const response = await fetch(`/api/checks-efts/eft-payees/${id}`, {
+            method: 'DELETE'
+        });
+
+        if (!response.ok) throw new Error('Failed to delete');
+
+        await loadEFTPayees();
+    } catch (error) {
+        alert('Error deleting EFT payee: ' + error.message);
+    }
+}
+
+function closeModal() {
+    document.getElementById('modal-overlay').classList.remove('active');
+    document.getElementById('modal-container').classList.remove('active');
+}
+
+async function handleSubmit(event) {
+    event.preventDefault();
+
+    const id = document.getElementById('value-id').value;
+    const type = document.getElementById('value-type').value;
+    const value = document.getElementById('value-input').value.trim();
+
+    if (!value) {
+        alert('Please enter a value');
+        return false;
+    }
+
+    try {
+        let url, method, body;
+
+        if (type === 'check-payee') {
+            url = id ? `/api/checks-efts/check-payees/${id}` : '/api/checks-efts/check-payees';
+            method = id ? 'PUT' : 'POST';
+            body = JSON.stringify({ name: value });
+        } else if (type === 'eft-card') {
+            url = id ? `/api/checks-efts/eft-card-numbers/${id}` : '/api/checks-efts/eft-card-numbers';
+            method = id ? 'PUT' : 'POST';
+            body = JSON.stringify({ number: value });
+        } else if (type === 'eft-payee') {
+            url = id ? `/api/checks-efts/eft-payees/${id}` : '/api/checks-efts/eft-payees';
+            method = id ? 'PUT' : 'POST';
+            body = JSON.stringify({ name: value });
+        }
+
+        const response = await fetch(url, {
+            method: method,
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: body
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.detail || 'Failed to save');
+        }
+
+        closeModal();
+
+        if (type === 'check-payee') {
+            await loadCheckPayees();
+        } else if (type === 'eft-card') {
+            await loadEFTCards();
+        } else if (type === 'eft-payee') {
+            await loadEFTPayees();
+        }
+    } catch (error) {
+        alert('Error saving: ' + error.message);
+    }
+
+    return false;
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+document.addEventListener('DOMContentLoaded', loadAllData);
+</script>
+{% endblock %}

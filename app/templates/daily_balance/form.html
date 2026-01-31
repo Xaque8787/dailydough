@@ -1613,50 +1613,6 @@ function updateEFTPayeesDatalist() {
     });
 }
 
-async function saveNewCheckPayee(name) {
-    try {
-        const response = await fetch('/api/checks-efts/check-payees', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name })
-        });
-        if (response.ok) {
-            await loadCheckPayees();
-        }
-    } catch (error) {
-        console.error('Failed to save check payee:', error);
-    }
-}
-
-async function saveNewEFTCardNumber(number) {
-    try {
-        const response = await fetch('/api/checks-efts/eft-card-numbers', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ number })
-        });
-        if (response.ok) {
-            await loadEFTCardNumbers();
-        }
-    } catch (error) {
-        console.error('Failed to save EFT card number:', error);
-    }
-}
-
-async function saveNewEFTPayee(name) {
-    try {
-        const response = await fetch('/api/checks-efts/eft-payees', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name })
-        });
-        if (response.ok) {
-            await loadEFTPayees();
-        }
-    } catch (error) {
-        console.error('Failed to save EFT payee:', error);
-    }
-}
 
 function addCheck() {
     checkCounter++;
@@ -1705,13 +1661,6 @@ function addCheck() {
     container.appendChild(checkDiv);
 
     const payableToInput = checkDiv.querySelector('.check-payable-to-input');
-    payableToInput.addEventListener('change', function() {
-        const value = this.value.trim();
-        if (value && !checkPayees.find(p => p.name === value)) {
-            saveNewCheckPayee(value);
-        }
-    });
-
     setupComboboxDropdown(payableToInput, checkPayees);
 }
 
@@ -1765,21 +1714,9 @@ function addEFT() {
     container.appendChild(eftDiv);
 
     const cardNumberInput = eftDiv.querySelector('.eft-card-number-input');
-    cardNumberInput.addEventListener('change', function() {
-        const value = this.value.trim();
-        if (value && !eftCardNumbers.find(c => c.number === value)) {
-            saveNewEFTCardNumber(value);
-        }
-    });
     setupComboboxDropdown(cardNumberInput, eftCardNumbers);
 
     const payableToInput = eftDiv.querySelector('.eft-payable-to-input');
-    payableToInput.addEventListener('change', function() {
-        const value = this.value.trim();
-        if (value && !eftPayees.find(p => p.name === value)) {
-            saveNewEFTPayee(value);
-        }
-    });
     setupComboboxDropdown(payableToInput, eftPayees);
 }
 
@@ -1874,32 +1811,14 @@ document.addEventListener('DOMContentLoaded', function() {
     loadEFTPayees();
 
     document.querySelectorAll('.check-payable-to-input').forEach(input => {
-        input.addEventListener('change', function() {
-            const value = this.value.trim();
-            if (value && !checkPayees.find(p => p.name === value)) {
-                saveNewCheckPayee(value);
-            }
-        });
         setupComboboxDropdown(input, checkPayees);
     });
 
     document.querySelectorAll('.eft-card-number-input').forEach(input => {
-        input.addEventListener('change', function() {
-            const value = this.value.trim();
-            if (value && !eftCardNumbers.find(c => c.number === value)) {
-                saveNewEFTCardNumber(value);
-            }
-        });
         setupComboboxDropdown(input, eftCardNumbers);
     });
 
     document.querySelectorAll('.eft-payable-to-input').forEach(input => {
-        input.addEventListener('change', function() {
-            const value = this.value.trim();
-            if (value && !eftPayees.find(p => p.name === value)) {
-                saveNewEFTPayee(value);
-            }
-        });
         setupComboboxDropdown(input, eftPayees);
     });
 
