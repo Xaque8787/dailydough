@@ -528,6 +528,59 @@ def parse_daily_balance_csv(filepath: str) -> Dict[str, Any]:
             while i < len(rows) and (not rows[i] or len(rows[i]) == 0 or rows[i][0] == ''):
                 i += 1
 
+            daily_report['checks'] = []
+            daily_report['efts'] = []
+
+            if i < len(rows) and rows[i] and rows[i][0] == 'Checks & EFT':
+                i += 1
+
+                while i < len(rows) and (not rows[i] or len(rows[i]) == 0 or rows[i][0] == ''):
+                    i += 1
+
+                if i < len(rows) and rows[i] and rows[i][0] == 'Checks':
+                    i += 1
+
+                    if i < len(rows) and rows[i] and rows[i][0] == 'Check Number':
+                        i += 1
+
+                        while i < len(rows) and rows[i] and len(rows[i]) >= 4:
+                            if rows[i][0] in ['', 'EFT Transactions', 'Employee Breakdown'] or not rows[i][0].strip():
+                                break
+
+                            daily_report['checks'].append({
+                                'check_number': rows[i][0],
+                                'date': rows[i][1],
+                                'payable_to': rows[i][2],
+                                'total': rows[i][3],
+                                'memo': rows[i][4] if len(rows[i]) > 4 else ''
+                            })
+                            i += 1
+
+                while i < len(rows) and (not rows[i] or len(rows[i]) == 0 or rows[i][0] == ''):
+                    i += 1
+
+                if i < len(rows) and rows[i] and rows[i][0] == 'EFT Transactions':
+                    i += 1
+
+                    if i < len(rows) and rows[i] and rows[i][0] == 'Date':
+                        i += 1
+
+                        while i < len(rows) and rows[i] and len(rows[i]) >= 4:
+                            if rows[i][0] in ['', 'Employee Breakdown'] or not rows[i][0].strip():
+                                break
+
+                            daily_report['efts'].append({
+                                'date': rows[i][0],
+                                'card_number': rows[i][1],
+                                'payable_to': rows[i][2],
+                                'total': rows[i][3],
+                                'memo': rows[i][4] if len(rows[i]) > 4 else ''
+                            })
+                            i += 1
+
+            while i < len(rows) and (not rows[i] or len(rows[i]) == 0 or rows[i][0] == ''):
+                i += 1
+
             if i < len(rows) and rows[i] and rows[i][0] == 'Employee Breakdown':
                 i += 1
 

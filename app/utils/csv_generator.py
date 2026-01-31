@@ -74,6 +74,36 @@ def generate_daily_balance_csv(daily_balance: DailyBalance, employee_entries: Li
         writer.writerow(["Cash Over/Under", f"${cash_over_under:.2f}"])
         writer.writerow([])
 
+        if daily_balance.checks or daily_balance.efts:
+            writer.writerow(["Checks & EFT"])
+            writer.writerow([])
+
+            if daily_balance.checks:
+                writer.writerow(["Checks"])
+                writer.writerow(["Check Number", "Date", "Payable To", "Total", "Memo"])
+                for check in daily_balance.checks:
+                    writer.writerow([
+                        check.check_number or "N/A",
+                        check.date,
+                        check.payable_to,
+                        f"${check.total:.2f}",
+                        check.memo or ""
+                    ])
+                writer.writerow([])
+
+            if daily_balance.efts:
+                writer.writerow(["EFT Transactions"])
+                writer.writerow(["Date", "Card Number", "Payable To", "Total", "Memo"])
+                for eft in daily_balance.efts:
+                    writer.writerow([
+                        eft.date,
+                        eft.card_number or "N/A",
+                        eft.payable_to,
+                        f"${eft.total:.2f}",
+                        eft.memo or ""
+                    ])
+                writer.writerow([])
+
         all_requirements = []
         requirement_map = {}
         for entry in employee_entries:
@@ -388,6 +418,36 @@ def generate_consolidated_daily_balance_csv(db: Session, start_date: date, end_d
             cash_over_under = expense_total - revenue_total
             writer.writerow(["Cash Over/Under", f"${cash_over_under:.2f}"])
             writer.writerow([])
+
+            if daily_balance.checks or daily_balance.efts:
+                writer.writerow(["Checks & EFT"])
+                writer.writerow([])
+
+                if daily_balance.checks:
+                    writer.writerow(["Checks"])
+                    writer.writerow(["Check Number", "Date", "Payable To", "Total", "Memo"])
+                    for check in daily_balance.checks:
+                        writer.writerow([
+                            check.check_number or "N/A",
+                            check.date,
+                            check.payable_to,
+                            f"${check.total:.2f}",
+                            check.memo or ""
+                        ])
+                    writer.writerow([])
+
+                if daily_balance.efts:
+                    writer.writerow(["EFT Transactions"])
+                    writer.writerow(["Date", "Card Number", "Payable To", "Total", "Memo"])
+                    for eft in daily_balance.efts:
+                        writer.writerow([
+                            eft.date,
+                            eft.card_number or "N/A",
+                            eft.payable_to,
+                            f"${eft.total:.2f}",
+                            eft.memo or ""
+                        ])
+                    writer.writerow([])
 
             sorted_entries = sorted(daily_balance.employee_entries, key=lambda e: e.employee_display_name)
 
