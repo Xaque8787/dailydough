@@ -334,7 +334,10 @@
                     </div>
                     <div class="form-group">
                         <label>Payable To</label>
-                        <input type="text" name="check_payable_to_{{ loop.index }}" class="check-payable-to-input" list="check-payees-datalist" value="{{ check.payable_to }}" {% if daily_balance and daily_balance.finalized and not edit_mode %}readonly{% endif %}>
+                        <div class="combobox-wrapper">
+                            <input type="text" name="check_payable_to_{{ loop.index }}" class="check-payable-to-input combobox-input" list="check-payees-datalist" value="{{ check.payable_to }}" {% if daily_balance and daily_balance.finalized and not edit_mode %}readonly{% endif %} placeholder="Select or type...">
+                            <span class="combobox-arrow">▼</span>
+                        </div>
                     </div>
                     <div class="form-group">
                         <label>Total</label>
@@ -365,11 +368,17 @@
                     </div>
                     <div class="form-group">
                         <label>Card Number</label>
-                        <input type="text" name="eft_card_number_{{ loop.index }}" class="eft-card-number-input" list="eft-card-numbers-datalist" value="{{ eft.card_number or '' }}" {% if daily_balance and daily_balance.finalized and not edit_mode %}readonly{% endif %}>
+                        <div class="combobox-wrapper">
+                            <input type="text" name="eft_card_number_{{ loop.index }}" class="eft-card-number-input combobox-input" list="eft-card-numbers-datalist" value="{{ eft.card_number or '' }}" {% if daily_balance and daily_balance.finalized and not edit_mode %}readonly{% endif %} placeholder="Select or type...">
+                            <span class="combobox-arrow">▼</span>
+                        </div>
                     </div>
                     <div class="form-group">
                         <label>Payable To</label>
-                        <input type="text" name="eft_payable_to_{{ loop.index }}" class="eft-payable-to-input" list="eft-payees-datalist" value="{{ eft.payable_to }}" {% if daily_balance and daily_balance.finalized and not edit_mode %}readonly{% endif %}>
+                        <div class="combobox-wrapper">
+                            <input type="text" name="eft_payable_to_{{ loop.index }}" class="eft-payable-to-input combobox-input" list="eft-payees-datalist" value="{{ eft.payable_to }}" {% if daily_balance and daily_balance.finalized and not edit_mode %}readonly{% endif %} placeholder="Select or type...">
+                            <span class="combobox-arrow">▼</span>
+                        </div>
                     </div>
                     <div class="form-group">
                         <label>Total</label>
@@ -1677,7 +1686,10 @@ function addCheck() {
             </div>
             <div class="form-group">
                 <label>Payable To</label>
-                <input type="text" name="check_payable_to_${checkCounter}" class="check-payable-to-input" list="check-payees-datalist">
+                <div class="combobox-wrapper">
+                    <input type="text" name="check_payable_to_${checkCounter}" class="check-payable-to-input combobox-input" list="check-payees-datalist" placeholder="Select or type...">
+                    <span class="combobox-arrow">▼</span>
+                </div>
             </div>
             <div class="form-group">
                 <label>Total</label>
@@ -1699,6 +1711,8 @@ function addCheck() {
             saveNewCheckPayee(value);
         }
     });
+
+    setupComboboxDropdown(payableToInput, checkPayees);
 }
 
 function addEFT() {
@@ -1725,11 +1739,17 @@ function addEFT() {
             </div>
             <div class="form-group">
                 <label>Card Number</label>
-                <input type="text" name="eft_card_number_${eftCounter}" class="eft-card-number-input" list="eft-card-numbers-datalist">
+                <div class="combobox-wrapper">
+                    <input type="text" name="eft_card_number_${eftCounter}" class="eft-card-number-input combobox-input" list="eft-card-numbers-datalist" placeholder="Select or type...">
+                    <span class="combobox-arrow">▼</span>
+                </div>
             </div>
             <div class="form-group">
                 <label>Payable To</label>
-                <input type="text" name="eft_payable_to_${eftCounter}" class="eft-payable-to-input" list="eft-payees-datalist">
+                <div class="combobox-wrapper">
+                    <input type="text" name="eft_payable_to_${eftCounter}" class="eft-payable-to-input combobox-input" list="eft-payees-datalist" placeholder="Select or type...">
+                    <span class="combobox-arrow">▼</span>
+                </div>
             </div>
             <div class="form-group">
                 <label>Total</label>
@@ -1751,6 +1771,7 @@ function addEFT() {
             saveNewEFTCardNumber(value);
         }
     });
+    setupComboboxDropdown(cardNumberInput, eftCardNumbers);
 
     const payableToInput = eftDiv.querySelector('.eft-payable-to-input');
     payableToInput.addEventListener('change', function() {
@@ -1759,12 +1780,89 @@ function addEFT() {
             saveNewEFTPayee(value);
         }
     });
+    setupComboboxDropdown(payableToInput, eftPayees);
 }
 
 function removeCheckEFT(button) {
     if (confirm('Remove this entry?')) {
         button.closest('.check-eft-entry').remove();
     }
+}
+
+function setupComboboxDropdown(input, dataSource) {
+    const wrapper = input.closest('.combobox-wrapper');
+    if (!wrapper) return;
+
+    let dropdown = null;
+
+    function showDropdown() {
+        if (dropdown) {
+            dropdown.remove();
+        }
+
+        dropdown = document.createElement('div');
+        dropdown.className = 'combobox-dropdown';
+
+        const filterValue = input.value.toLowerCase().trim();
+        let filteredData = dataSource;
+
+        if (filterValue) {
+            filteredData = dataSource.filter(item => {
+                const searchValue = item.name || item.number || '';
+                return searchValue.toLowerCase().includes(filterValue);
+            });
+        }
+
+        if (filteredData.length === 0) {
+            dropdown.innerHTML = '<div class="combobox-option combobox-empty">No saved options. Type to add new.</div>';
+        } else {
+            filteredData.forEach(item => {
+                const option = document.createElement('div');
+                option.className = 'combobox-option';
+                option.textContent = item.name || item.number || '';
+                option.addEventListener('mousedown', (e) => {
+                    e.preventDefault();
+                    input.value = item.name || item.number || '';
+                    input.dispatchEvent(new Event('change'));
+                    hideDropdown();
+                    input.blur();
+                });
+                dropdown.appendChild(option);
+            });
+        }
+
+        wrapper.appendChild(dropdown);
+
+        const rect = input.getBoundingClientRect();
+        dropdown.style.width = rect.width + 'px';
+    }
+
+    function hideDropdown() {
+        if (dropdown) {
+            dropdown.remove();
+            dropdown = null;
+        }
+    }
+
+    input.addEventListener('focus', () => {
+        showDropdown();
+    });
+
+    input.addEventListener('input', () => {
+        if (document.activeElement === input) {
+            showDropdown();
+        }
+    });
+
+    input.addEventListener('blur', () => {
+        setTimeout(hideDropdown, 150);
+    });
+
+    input.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            hideDropdown();
+        }
+    });
 }
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -1782,6 +1880,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 saveNewCheckPayee(value);
             }
         });
+        setupComboboxDropdown(input, checkPayees);
     });
 
     document.querySelectorAll('.eft-card-number-input').forEach(input => {
@@ -1791,6 +1890,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 saveNewEFTCardNumber(value);
             }
         });
+        setupComboboxDropdown(input, eftCardNumbers);
     });
 
     document.querySelectorAll('.eft-payable-to-input').forEach(input => {
@@ -1800,6 +1900,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 saveNewEFTPayee(value);
             }
         });
+        setupComboboxDropdown(input, eftPayees);
     });
 
     // Add input listeners and select-on-focus for financial fields
@@ -2008,6 +2109,76 @@ document.addEventListener('DOMContentLoaded', function() {
     color: #9ca3af;
     font-style: italic;
     padding: 2rem;
+}
+
+.combobox-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.combobox-wrapper input.combobox-input {
+    flex: 1;
+    padding-right: 2.5rem;
+}
+
+.combobox-arrow {
+    position: absolute;
+    right: 0.75rem;
+    pointer-events: none;
+    color: #6b7280;
+    font-size: 0.75rem;
+    user-select: none;
+}
+
+.combobox-wrapper:hover .combobox-arrow {
+    color: #374151;
+}
+
+.combobox-input:focus {
+    outline: 2px solid #3b82f6;
+    outline-offset: -2px;
+}
+
+input[list]::-webkit-calendar-picker-indicator {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.combobox-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: white;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 1000;
+    margin-top: 4px;
+}
+
+.combobox-option {
+    padding: 0.5rem 0.75rem;
+    cursor: pointer;
+    transition: background-color 0.15s;
+}
+
+.combobox-option:hover {
+    background-color: #f3f4f6;
+}
+
+.combobox-option.combobox-empty {
+    color: #9ca3af;
+    font-style: italic;
+    cursor: default;
+}
+
+.combobox-option.combobox-empty:hover {
+    background-color: transparent;
 }
 </style>
 {% endblock %}
