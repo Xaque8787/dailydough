@@ -73,7 +73,7 @@ def save_daily_balance_data(
             )
 
         try:
-            value = float(value_str)
+            value = round(float(value_str), 2)
         except (ValueError, TypeError):
             raise HTTPException(
                 status_code=400,
@@ -125,7 +125,7 @@ def save_daily_balance_data(
                     )
 
                 try:
-                    value = float(value_str)
+                    value = round(float(value_str), 2)
                 except (ValueError, TypeError):
                     raise HTTPException(
                         status_code=400,
@@ -181,7 +181,7 @@ def save_daily_balance_data(
                             total -= value
                         else:
                             total += value
-                tip_values[req.field_name] = total
+                tip_values[req.field_name] = round(total, 2)
 
         entry = DailyEmployeeEntry(
             daily_balance_id=daily_balance.id,
@@ -212,7 +212,7 @@ def save_daily_balance_data(
 
         if check_date and check_payable_to and check_total_str:
             try:
-                check_total = float(check_total_str)
+                check_total = round(float(check_total_str), 2)
             except (ValueError, TypeError):
                 continue
 
@@ -245,7 +245,7 @@ def save_daily_balance_data(
 
         if eft_date and eft_payable_to and eft_total_str:
             try:
-                eft_total = float(eft_total_str)
+                eft_total = round(float(eft_total_str), 2)
             except (ValueError, TypeError):
                 continue
 
