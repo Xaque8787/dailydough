@@ -331,6 +331,23 @@ def generate_daily_balance_html(report_data: Dict[str, Any]) -> str:
             html += f'<strong>Finalized At:</strong> {report_data["finalized_at"]}'
         html += '</div>'
 
+    # Add Checks & EFT Summary section if present
+    if report_data.get('checks_efts_summary'):
+        html += '<h2 style="margin-top: 30px;">Checks & EFT Summary</h2>'
+        html += '<table><thead><tr>'
+        html += '<th>Type</th><th>Date</th><th>Number/Card</th><th>Payable To</th><th class="text-right">Total</th><th>Memo</th>'
+        html += '</tr></thead><tbody>'
+        for item in report_data['checks_efts_summary']:
+            html += '<tr>'
+            html += f'<td>{item.get("type", "")}</td>'
+            html += f'<td>{item.get("date", "")}</td>'
+            html += f'<td>{item.get("number", "")}</td>'
+            html += f'<td>{item.get("payable_to", "")}</td>'
+            html += f'<td class="text-right">{item.get("total", "")}</td>'
+            html += f'<td>{item.get("memo", "")}</td>'
+            html += '</tr>'
+        html += '</tbody></table>'
+
     for daily_report in report_data.get('daily_reports', []):
         html += f'''
         <div class="daily-header">
@@ -392,12 +409,12 @@ def generate_daily_balance_html(report_data: Dict[str, Any]) -> str:
             if daily_report.get('checks'):
                 html += '<h4 style="margin-top: 15px; color: #495057;">Checks</h4>'
                 html += '<table><thead><tr>'
-                html += '<th>Check Number</th><th>Date</th><th>Payable To</th><th class="text-right">Total</th><th>Memo</th>'
+                html += '<th>Date</th><th>Check Number</th><th>Payable To</th><th class="text-right">Total</th><th>Memo</th>'
                 html += '</tr></thead><tbody>'
                 for check in daily_report['checks']:
                     html += '<tr>'
-                    html += f'<td>{check.get("check_number", "N/A")}</td>'
                     html += f'<td>{check.get("date", "")}</td>'
+                    html += f'<td>{check.get("check_number", "N/A")}</td>'
                     html += f'<td>{check.get("payable_to", "")}</td>'
                     html += f'<td class="text-right">{check.get("total", "")}</td>'
                     html += f'<td>{check.get("memo", "")}</td>'

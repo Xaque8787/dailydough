@@ -325,12 +325,12 @@
                 </div>
                 <div class="form-row">
                     <div class="form-group">
-                        <label>Check Number</label>
-                        <input type="text" name="check_number_{{ loop.index }}" value="{{ check.check_number or '' }}" {% if daily_balance and daily_balance.finalized and not edit_mode %}readonly{% endif %}>
-                    </div>
-                    <div class="form-group">
                         <label>Date</label>
                         <input type="date" name="check_date_{{ loop.index }}" value="{{ check.date }}" {% if daily_balance and daily_balance.finalized and not edit_mode %}readonly{% endif %}>
+                    </div>
+                    <div class="form-group">
+                        <label>Check Number</label>
+                        <input type="text" name="check_number_{{ loop.index }}" value="{{ check.check_number or '' }}" {% if daily_balance and daily_balance.finalized and not edit_mode %}readonly{% endif %}>
                     </div>
                     <div class="form-group">
                         <label>Payable To</label>
@@ -1633,12 +1633,12 @@ function addCheck() {
         </div>
         <div class="form-row">
             <div class="form-group">
-                <label>Check Number</label>
-                <input type="text" name="check_number_${checkCounter}">
-            </div>
-            <div class="form-group">
                 <label>Date</label>
                 <input type="date" name="check_date_${checkCounter}" value="${targetDate}">
+            </div>
+            <div class="form-group">
+                <label>Check Number</label>
+                <input type="text" name="check_number_${checkCounter}">
             </div>
             <div class="form-group">
                 <label>Payable To</label>
