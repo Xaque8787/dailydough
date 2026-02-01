@@ -8,6 +8,22 @@ LOG_FILE = LOG_DIR / "error_log.txt"
 
 _file_handler = None
 
+
+class NoiseFilter(logging.Filter):
+    """Filter out noisy third-party library debug logs."""
+
+    NOISY_LOGGERS = [
+        'multipart.multipart',
+        'asyncio',
+        'watchfiles',
+    ]
+
+    def filter(self, record):
+        for noisy in self.NOISY_LOGGERS:
+            if record.name.startswith(noisy) and record.levelno == logging.DEBUG:
+                return False
+        return True
+
 def setup_error_logging(max_bytes=10485760, backup_count=5, log_level=logging.ERROR):
     """
     Configure rotating file handler for error logging.
@@ -29,6 +45,7 @@ def setup_error_logging(max_bytes=10485760, backup_count=5, log_level=logging.ER
     )
 
     file_handler.setLevel(log_level)
+    file_handler.addFilter(NoiseFilter())
 
     formatter = logging.Formatter(
         '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -41,6 +58,10 @@ def setup_error_logging(max_bytes=10485760, backup_count=5, log_level=logging.ER
 
     if root_logger.level > log_level:
         root_logger.setLevel(log_level)
+
+    uvicorn_access = logging.getLogger("uvicorn.access")
+    uvicorn_access.addHandler(file_handler)
+    uvicorn_access.setLevel(log_level)
 
     _file_handler = file_handler
     return file_handler
@@ -142,6 +163,9 @@ def reconfigure_logging():
             root_logger = logging.getLogger()
             if root_logger.level > new_level:
                 root_logger.setLevel(new_level)
+
+            uvicorn_access = logging.getLogger("uvicorn.access")
+            uvicorn_access.setLevel(new_level)
 
             logging.info(f"Logging reconfigured to level: {logging.getLevelName(new_level)}")
 
