@@ -237,6 +237,8 @@ async def view_error_logs(
 
     log_max_size = db.query(Setting).filter(Setting.key == "log_max_size_mb").first()
     log_backup_count = db.query(Setting).filter(Setting.key == "log_backup_count").first()
+    log_capture_info = db.query(Setting).filter(Setting.key == "log_capture_info").first()
+    log_capture_debug = db.query(Setting).filter(Setting.key == "log_capture_debug").first()
 
     return templates.TemplateResponse(
         "admin/error_logs.html",
@@ -246,6 +248,8 @@ async def view_error_logs(
             "log_stats": log_stats,
             "log_max_size_mb": int(log_max_size.value) if log_max_size else 10,
             "log_backup_count": int(log_backup_count.value) if log_backup_count else 5,
+            "log_capture_info": int(log_capture_info.value) if log_capture_info else 0,
+            "log_capture_debug": int(log_capture_debug.value) if log_capture_debug else 0,
             "current_user": current_user
         }
     )
@@ -289,5 +293,43 @@ async def update_log_rotation(
         return RedirectResponse(url="/admin/error-logs?settings_updated=true", status_code=302)
     except HTTPException:
         raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/admin/settings/log-levels")
+async def update_log_levels(
+    log_capture_info: bool = Form(False),
+    log_capture_debug: bool = Form(False),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_admin_user)
+):
+    from app.utils.logging_config import reconfigure_logging
+
+    try:
+        info_setting = db.query(Setting).filter(Setting.key == "log_capture_info").first()
+        if info_setting:
+            info_setting.value = "1" if log_capture_info else "0"
+        else:
+            db.add(Setting(
+                key="log_capture_info",
+                value="1" if log_capture_info else "0",
+                description="Capture INFO level logs"
+            ))
+
+        debug_setting = db.query(Setting).filter(Setting.key == "log_capture_debug").first()
+        if debug_setting:
+            debug_setting.value = "1" if log_capture_debug else "0"
+        else:
+            db.add(Setting(
+                key="log_capture_debug",
+                value="1" if log_capture_debug else "0",
+                description="Capture DEBUG level logs"
+            ))
+
+        db.commit()
+
+        reconfigure_logging()
+
+        return RedirectResponse(url="/admin/error-logs?levels_updated=true", status_code=302)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

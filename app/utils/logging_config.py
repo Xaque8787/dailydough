@@ -6,6 +6,8 @@ from pathlib import Path
 LOG_DIR = Path("data/logs")
 LOG_FILE = LOG_DIR / "error_log.txt"
 
+_file_handler = None
+
 def setup_error_logging(max_bytes=10485760, backup_count=5, log_level=logging.ERROR):
     """
     Configure rotating file handler for error logging.
@@ -15,6 +17,8 @@ def setup_error_logging(max_bytes=10485760, backup_count=5, log_level=logging.ER
         backup_count: Number of backup files to keep (default 5)
         log_level: Minimum log level to capture (default ERROR)
     """
+    global _file_handler
+
     LOG_DIR.mkdir(parents=True, exist_ok=True)
 
     file_handler = RotatingFileHandler(
@@ -38,6 +42,7 @@ def setup_error_logging(max_bytes=10485760, backup_count=5, log_level=logging.ER
     if root_logger.level > log_level:
         root_logger.setLevel(log_level)
 
+    _file_handler = file_handler
     return file_handler
 
 
@@ -103,3 +108,45 @@ def get_log_stats():
         'total_size_mb': round(total_size / (1024 * 1024), 2),
         'files': file_info
     }
+
+
+def reconfigure_logging():
+    """
+    Reconfigure logging based on current database settings.
+    Called when log level settings are updated.
+    """
+    global _file_handler
+
+    try:
+        from app.database import SessionLocal
+        from app.models import Setting
+
+        db = SessionLocal()
+        try:
+            log_capture_info = db.query(Setting).filter(Setting.key == "log_capture_info").first()
+            log_capture_debug = db.query(Setting).filter(Setting.key == "log_capture_debug").first()
+
+            capture_info = log_capture_info and log_capture_info.value == "1"
+            capture_debug = log_capture_debug and log_capture_debug.value == "1"
+
+            if capture_debug:
+                new_level = logging.DEBUG
+            elif capture_info:
+                new_level = logging.INFO
+            else:
+                new_level = logging.WARNING
+
+            if _file_handler:
+                _file_handler.setLevel(new_level)
+
+            root_logger = logging.getLogger()
+            if root_logger.level > new_level:
+                root_logger.setLevel(new_level)
+
+            logging.info(f"Logging reconfigured to level: {logging.getLevelName(new_level)}")
+
+        finally:
+            db.close()
+
+    except Exception as e:
+        logging.error(f"Error reconfiguring logging: {e}")
