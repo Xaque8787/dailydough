@@ -122,6 +122,7 @@ def parse_tip_report_csv(filepath: str) -> Dict[str, Any]:
         'summary': [],
         'details': [],
         'payroll_summary': [],
+        'payroll_summary_totals': [],
         'is_employee_specific': is_employee_specific,
         'employee_name': employee_name,
         'employee_position': employee_position
@@ -288,11 +289,17 @@ def parse_tip_report_csv(filepath: str) -> Dict[str, Any]:
 
     # Parse payroll summary section
     report_data['payroll_summary'] = []
+    report_data['payroll_summary_totals'] = []
     if payroll_summary_start is not None:
         # Find the header row (should be 2 rows after PAYROLL SUMMARY title)
         header_row_idx = payroll_summary_start + 2
         if header_row_idx < len(rows) and rows[header_row_idx]:
             headers = rows[header_row_idx]
+            # Initialize column totals
+            column_totals = {}
+            for j in range(2, len(headers)):
+                column_totals[j] = 0.0
+
             # Parse data rows
             for i in range(header_row_idx + 1, len(rows)):
                 row = rows[i]
@@ -311,12 +318,28 @@ def parse_tip_report_csv(filepath: str) -> Dict[str, Any]:
                 # Add custom fields (everything after employee name and position)
                 for j in range(2, len(headers)):
                     if j < len(row):
+                        value_str = row[j].strip()
                         entry['fields'].append({
                             'name': headers[j].strip(),
-                            'value': row[j].strip()
+                            'value': value_str
                         })
 
+                        # Try to parse numeric value for totals
+                        try:
+                            # Remove $ and commas, then convert to float
+                            numeric_value = float(value_str.replace('$', '').replace(',', ''))
+                            column_totals[j] += numeric_value
+                        except (ValueError, AttributeError):
+                            pass
+
                 report_data['payroll_summary'].append(entry)
+
+            # Build totals array
+            for j in range(2, len(headers)):
+                report_data['payroll_summary_totals'].append({
+                    'name': headers[j].strip(),
+                    'value': f"${column_totals[j]:,.2f}"
+                })
 
     if summary_start is not None:
         header_idx = summary_start + 2
@@ -426,6 +449,7 @@ def parse_daily_balance_csv(filepath: str) -> Dict[str, Any]:
         'generated_at': '',
         'finalized_at': '',
         'checks_efts_summary': [],
+        'checks_efts_total': '$0.00',
         'daily_reports': []
     }
 
@@ -449,20 +473,35 @@ def parse_daily_balance_csv(filepath: str) -> Dict[str, Any]:
             if i < len(rows) and rows[i] and rows[i][0] == 'Type':
                 i += 1
 
+            # Track total for checks/efts
+            checks_efts_total = 0.0
+
             # Parse all summary entries
             while i < len(rows) and rows[i] and len(rows[i]) >= 5:
                 if rows[i][0] in ['', 'Date: '] or rows[i][0].startswith('Date: '):
                     break
 
+                total_value = rows[i][4]
                 report_data['checks_efts_summary'].append({
                     'type': rows[i][0],
                     'date': rows[i][1],
                     'number': rows[i][2],
                     'payable_to': rows[i][3],
-                    'total': rows[i][4],
+                    'total': total_value,
                     'memo': rows[i][5] if len(rows[i]) > 5 else ''
                 })
+
+                # Try to parse and add to total
+                try:
+                    numeric_value = float(total_value.replace('$', '').replace(',', ''))
+                    checks_efts_total += numeric_value
+                except (ValueError, AttributeError):
+                    pass
+
                 i += 1
+
+            # Store the total
+            report_data['checks_efts_total'] = f"${checks_efts_total:,.2f}"
 
             # Skip empty rows and update row variable
             while i < len(rows) and (not rows[i] or len(rows[i]) == 0 or rows[i][0] == ''):
