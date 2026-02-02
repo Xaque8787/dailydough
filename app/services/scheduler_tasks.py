@@ -135,7 +135,10 @@ def run_tip_report_task(task_id, task_name, date_range_type, email_list_json, by
     execution_id = None
 
     try:
+        print(f"▶️  Starting tip report task '{task_name}' (ID: {task_id})")
+
         start_date, end_date = calculate_date_range(date_range_type)
+        print(f"  → Date range: {start_date} to {end_date}")
 
         db.execute(text("""
             INSERT INTO task_executions (task_id, started_at, status)
@@ -146,6 +149,7 @@ def run_tip_report_task(task_id, task_name, date_range_type, email_list_json, by
             raise Exception("Failed to create task execution record")
 
         execution_id = db.execute(text("SELECT last_insert_rowid()")).scalar()
+        print(f"  → Created execution record (ID: {execution_id})")
 
         filename = generate_tip_report_csv(db, start_date, end_date, current_user=None, source="scheduled_task")
         filepath = os.path.join(DATABASE_DIR, "reports", "tip_report", filename)
@@ -242,19 +246,34 @@ def run_tip_report_task(task_id, task_name, date_range_type, email_list_json, by
         error_message = str(e)
         print(f"✗ Tip report task '{task_name}' failed: {error_message}")
 
+        import traceback
+        traceback.print_exc()
+
         if execution_id:
-            time.sleep(0.05)
-            db.execute(text("""
-                UPDATE task_executions
-                SET completed_at = CURRENT_TIMESTAMP,
-                    status = 'failed',
-                    error_message = :error_message
-                WHERE id = :execution_id
-            """), {"execution_id": execution_id, "error_message": error_message})
-            commit_with_retry(db)
+            try:
+                time.sleep(0.05)
+                db.execute(text("""
+                    UPDATE task_executions
+                    SET completed_at = CURRENT_TIMESTAMP,
+                        status = 'failed',
+                        error_message = :error_message
+                    WHERE id = :execution_id
+                """), {"execution_id": execution_id, "error_message": error_message})
+
+                if commit_with_retry(db):
+                    print(f"  ✓ Marked execution {execution_id} as failed")
+                else:
+                    print(f"  ✗ WARNING: Could not mark execution {execution_id} as failed!")
+            except Exception as update_error:
+                print(f"  ✗ ERROR updating execution status: {update_error}")
+        else:
+            print(f"  ✗ No execution_id available to mark as failed")
 
     finally:
-        db.close()
+        try:
+            db.close()
+        except Exception as close_error:
+            print(f"  ✗ ERROR closing database: {close_error}")
 
 def run_daily_balance_report_task(task_id, task_name, date_range_type, email_list_json, bypass_opt_in):
     """
@@ -271,7 +290,10 @@ def run_daily_balance_report_task(task_id, task_name, date_range_type, email_lis
     execution_id = None
 
     try:
+        print(f"▶️  Starting daily balance report task '{task_name}' (ID: {task_id})")
+
         start_date, end_date = calculate_date_range(date_range_type)
+        print(f"  → Date range: {start_date} to {end_date}")
 
         db.execute(text("""
             INSERT INTO task_executions (task_id, started_at, status)
@@ -282,6 +304,7 @@ def run_daily_balance_report_task(task_id, task_name, date_range_type, email_lis
             raise Exception("Failed to create task execution record")
 
         execution_id = db.execute(text("SELECT last_insert_rowid()")).scalar()
+        print(f"  → Created execution record (ID: {execution_id})")
 
         filename = generate_consolidated_daily_balance_csv(db, start_date, end_date, current_user=None, source="scheduled_task")
 
@@ -381,19 +404,34 @@ def run_daily_balance_report_task(task_id, task_name, date_range_type, email_lis
         error_message = str(e)
         print(f"✗ Daily balance report task '{task_name}' failed: {error_message}")
 
+        import traceback
+        traceback.print_exc()
+
         if execution_id:
-            time.sleep(0.05)
-            db.execute(text("""
-                UPDATE task_executions
-                SET completed_at = CURRENT_TIMESTAMP,
-                    status = 'failed',
-                    error_message = :error_message
-                WHERE id = :execution_id
-            """), {"execution_id": execution_id, "error_message": error_message})
-            commit_with_retry(db)
+            try:
+                time.sleep(0.05)
+                db.execute(text("""
+                    UPDATE task_executions
+                    SET completed_at = CURRENT_TIMESTAMP,
+                        status = 'failed',
+                        error_message = :error_message
+                    WHERE id = :execution_id
+                """), {"execution_id": execution_id, "error_message": error_message})
+
+                if commit_with_retry(db):
+                    print(f"  ✓ Marked execution {execution_id} as failed")
+                else:
+                    print(f"  ✗ WARNING: Could not mark execution {execution_id} as failed!")
+            except Exception as update_error:
+                print(f"  ✗ ERROR updating execution status: {update_error}")
+        else:
+            print(f"  ✗ No execution_id available to mark as failed")
 
     finally:
-        db.close()
+        try:
+            db.close()
+        except Exception as close_error:
+            print(f"  ✗ ERROR closing database: {close_error}")
 
 def run_employee_tip_report_task(task_id, task_name, date_range_type, email_list_json, bypass_opt_in, employee_id):
     """
@@ -411,7 +449,10 @@ def run_employee_tip_report_task(task_id, task_name, date_range_type, email_list
     execution_id = None
 
     try:
+        print(f"▶️  Starting employee tip report task '{task_name}' (ID: {task_id})")
+
         start_date, end_date = calculate_date_range(date_range_type)
+        print(f"  → Date range: {start_date} to {end_date}")
 
         db.execute(text("""
             INSERT INTO task_executions (task_id, started_at, status)
@@ -422,6 +463,7 @@ def run_employee_tip_report_task(task_id, task_name, date_range_type, email_list
             raise Exception("Failed to create task execution record")
 
         execution_id = db.execute(text("SELECT last_insert_rowid()")).scalar()
+        print(f"  → Created execution record (ID: {execution_id})")
 
         employee = db.query(Employee).filter(Employee.id == employee_id).first()
         if not employee:
@@ -523,19 +565,34 @@ def run_employee_tip_report_task(task_id, task_name, date_range_type, email_list
         error_message = str(e)
         print(f"✗ Employee tip report task '{task_name}' failed: {error_message}")
 
+        import traceback
+        traceback.print_exc()
+
         if execution_id:
-            time.sleep(0.05)
-            db.execute(text("""
-                UPDATE task_executions
-                SET completed_at = CURRENT_TIMESTAMP,
-                    status = 'failed',
-                    error_message = :error_message
-                WHERE id = :execution_id
-            """), {"execution_id": execution_id, "error_message": error_message})
-            commit_with_retry(db)
+            try:
+                time.sleep(0.05)
+                db.execute(text("""
+                    UPDATE task_executions
+                    SET completed_at = CURRENT_TIMESTAMP,
+                        status = 'failed',
+                        error_message = :error_message
+                    WHERE id = :execution_id
+                """), {"execution_id": execution_id, "error_message": error_message})
+
+                if commit_with_retry(db):
+                    print(f"  ✓ Marked execution {execution_id} as failed")
+                else:
+                    print(f"  ✗ WARNING: Could not mark execution {execution_id} as failed!")
+            except Exception as update_error:
+                print(f"  ✗ ERROR updating execution status: {update_error}")
+        else:
+            print(f"  ✗ No execution_id available to mark as failed")
 
     finally:
-        db.close()
+        try:
+            db.close()
+        except Exception as close_error:
+            print(f"  ✗ ERROR closing database: {close_error}")
 
 def run_backup_task(task_id, task_name):
     """
@@ -549,6 +606,8 @@ def run_backup_task(task_id, task_name):
     execution_id = None
 
     try:
+        print(f"▶️  Starting backup task '{task_name}' (ID: {task_id})")
+
         db.execute(text("""
             INSERT INTO task_executions (task_id, started_at, status)
             VALUES (:task_id, CURRENT_TIMESTAMP, 'running')
@@ -558,6 +617,7 @@ def run_backup_task(task_id, task_name):
             raise Exception("Failed to create task execution record")
 
         execution_id = db.execute(text("SELECT last_insert_rowid()")).scalar()
+        print(f"  → Created execution record (ID: {execution_id})")
 
         filename = create_backup()
 
@@ -622,16 +682,31 @@ def run_backup_task(task_id, task_name):
         error_message = str(e)
         print(f"✗ Backup task '{task_name}' failed: {error_message}")
 
+        import traceback
+        traceback.print_exc()
+
         if execution_id:
-            time.sleep(0.05)
-            db.execute(text("""
-                UPDATE task_executions
-                SET completed_at = CURRENT_TIMESTAMP,
-                    status = 'failed',
-                    error_message = :error_message
-                WHERE id = :execution_id
-            """), {"execution_id": execution_id, "error_message": error_message})
-            commit_with_retry(db)
+            try:
+                time.sleep(0.05)
+                db.execute(text("""
+                    UPDATE task_executions
+                    SET completed_at = CURRENT_TIMESTAMP,
+                        status = 'failed',
+                        error_message = :error_message
+                    WHERE id = :execution_id
+                """), {"execution_id": execution_id, "error_message": error_message})
+
+                if commit_with_retry(db):
+                    print(f"  ✓ Marked execution {execution_id} as failed")
+                else:
+                    print(f"  ✗ WARNING: Could not mark execution {execution_id} as failed!")
+            except Exception as update_error:
+                print(f"  ✗ ERROR updating execution status: {update_error}")
+        else:
+            print(f"  ✗ No execution_id available to mark as failed")
 
     finally:
-        db.close()
+        try:
+            db.close()
+        except Exception as close_error:
+            print(f"  ✗ ERROR closing database: {close_error}")
