@@ -171,7 +171,7 @@
                 <div class="form-row">
                     <div class="form-group">
                         <label for="interval_value">Every</label>
-                        <input type="number" id="interval_value" name="interval_value" min="1" class="form-control">
+                        <input type="number" id="interval_value" name="interval_value" min="1" required class="form-control">
                     </div>
                     <div class="form-group">
                         <label for="interval_unit">Unit</label>
@@ -587,6 +587,7 @@ function showCreateTaskModal(resetForm = true) {
     }
     document.getElementById('next_runs_preview').style.display = 'none';
     toggleScheduleFields();
+    toggleTaskTypeFields();
     document.getElementById('createTaskModal').style.display = 'flex';
 }
 
@@ -599,33 +600,52 @@ function closeCreateTaskModal() {
 
 function toggleScheduleFields() {
     const scheduleType = document.getElementById('schedule_type').value;
-    document.getElementById('interval_fields').style.display = scheduleType === 'interval' ? 'block' : 'none';
-    document.getElementById('cron_fields').style.display = scheduleType === 'cron' ? 'block' : 'none';
+    const intervalFields = document.getElementById('interval_fields');
+    const cronFields = document.getElementById('cron_fields');
+    const intervalValue = document.getElementById('interval_value');
+    const cronExpression = document.getElementById('cron_expression');
+
+    if (scheduleType === 'interval') {
+        intervalFields.style.display = 'block';
+        cronFields.style.display = 'none';
+        intervalValue.required = true;
+        cronExpression.required = false;
+    } else {
+        intervalFields.style.display = 'none';
+        cronFields.style.display = 'block';
+        intervalValue.required = false;
+        cronExpression.required = true;
+    }
 }
 
 function toggleTaskTypeFields() {
     const taskType = document.getElementById('task_type').value;
     const employeeSelection = document.getElementById('employee_selection');
     const dateRangeGroup = document.getElementById('date_range_group');
+    const employeeId = document.getElementById('employee_id');
+    const dateRangeType = document.getElementById('date_range_type');
     const emailRecipients = document.querySelector('.form-group:has(.email-selection)');
     const bypassOptIn = document.querySelector('.form-group:has(#bypass_opt_in)');
 
     if (taskType === 'employee_tip_report') {
         employeeSelection.style.display = 'block';
-        document.getElementById('employee_id').required = true;
+        employeeId.required = true;
         dateRangeGroup.style.display = 'block';
+        dateRangeType.required = true;
         if (emailRecipients) emailRecipients.style.display = 'block';
         if (bypassOptIn) bypassOptIn.style.display = 'block';
     } else if (taskType === 'backup') {
         employeeSelection.style.display = 'none';
-        document.getElementById('employee_id').required = false;
+        employeeId.required = false;
         dateRangeGroup.style.display = 'none';
+        dateRangeType.required = false;
         if (emailRecipients) emailRecipients.style.display = 'none';
         if (bypassOptIn) bypassOptIn.style.display = 'none';
     } else {
         employeeSelection.style.display = 'none';
-        document.getElementById('employee_id').required = false;
+        employeeId.required = false;
         dateRangeGroup.style.display = 'block';
+        dateRangeType.required = true;
         if (emailRecipients) emailRecipients.style.display = 'block';
         if (bypassOptIn) bypassOptIn.style.display = 'block';
     }
