@@ -26,8 +26,8 @@ def generate_daily_balance_csv(daily_balance: DailyBalance, employee_entries: Li
     filename = f"{daily_balance.date}-daily-balance.csv"
     filepath = os.path.join(reports_dir, filename)
 
-    with open(filepath, 'w', newline='') as csvfile:
-        writer = csv.writer(csvfile)
+    with open(filepath, 'w', newline='', encoding='utf-8') as csvfile:
+        writer = csv.writer(csvfile, quoting=csv.QUOTE_NONNUMERIC)
 
         writer.writerow(["Daily Balance Report"])
         writer.writerow(["Date Range", str(daily_balance.date)])
@@ -141,8 +141,8 @@ def generate_tip_report_csv(db: Session, start_date: date, end_date: date, curre
 
     employees = db.query(Employee).order_by(Employee.last_name, Employee.first_name).all()
 
-    with open(filepath, 'w', newline='') as csvfile:
-        writer = csv.writer(csvfile)
+    with open(filepath, 'w', newline='', encoding='utf-8') as csvfile:
+        writer = csv.writer(csvfile, quoting=csv.QUOTE_NONNUMERIC)
 
         writer.writerow(["Employee Tip Report"])
         writer.writerow(["Date Range", f"{start_date} to {end_date}"])
@@ -361,8 +361,8 @@ def generate_consolidated_daily_balance_csv(db: Session, start_date: date, end_d
         DailyBalance.date <= end_date
     ).order_by(DailyBalance.date).all()
 
-    with open(filepath, 'w', newline='') as csvfile:
-        writer = csv.writer(csvfile)
+    with open(filepath, 'w', newline='', encoding='utf-8') as csvfile:
+        writer = csv.writer(csvfile, quoting=csv.QUOTE_NONNUMERIC)
 
         writer.writerow(["Consolidated Daily Balance Report"])
         writer.writerow(["Date Range", f"{start_date} to {end_date}"])
@@ -557,8 +557,8 @@ def generate_employee_tip_report_csv(db: Session, employee: Employee, start_date
         DailyBalance.date <= end_date
     ).order_by(DailyBalance.date).all()
 
-    with open(filepath, 'w', newline='') as csvfile:
-        writer = csv.writer(csvfile)
+    with open(filepath, 'w', newline='', encoding='utf-8') as csvfile:
+        writer = csv.writer(csvfile, quoting=csv.QUOTE_NONNUMERIC)
 
         positions_list = ", ".join([schedule.position.name for schedule in employee.position_schedules]) if employee.position_schedules else "No position assigned"
 
