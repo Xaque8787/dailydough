@@ -518,7 +518,7 @@ def generate_consolidated_daily_balance_csv(db: Session, start_date: date, end_d
                 writer.writerow(row)
 
             writer.writerow([])
-            writer.writerow(["=" * 80])
+            writer.writerow(["-" * 80])
             writer.writerow([])
 
         writer.writerow(["Summary Totals for Period"])
