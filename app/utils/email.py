@@ -148,6 +148,14 @@ def generate_tip_report_html(report_data: Dict[str, Any]) -> str:
                         html += f'<td>{field.get("value", "")}</td>'
                     html += '</tr>'
 
+                # Add total row if available
+                if report_data.get('payroll_summary_totals'):
+                    html += '<tr class="total-row">'
+                    html += '<td><strong>TOTAL</strong></td><td></td>'
+                    for total_field in report_data['payroll_summary_totals']:
+                        html += f'<td><strong>{total_field.get("value", "")}</strong></td>'
+                    html += '</tr>'
+
                 html += '</tbody></table>'
 
     if report_data.get('summary'):
@@ -345,6 +353,14 @@ def generate_daily_balance_html(report_data: Dict[str, Any]) -> str:
             html += f'<td>{item.get("payable_to", "")}</td>'
             html += f'<td class="text-right">{item.get("total", "")}</td>'
             html += f'<td>{item.get("memo", "")}</td>'
+            html += '</tr>'
+        # Add total row
+        if report_data.get('checks_efts_total'):
+            html += '<tr class="total-row">'
+            html += '<td></td><td></td><td></td>'
+            html += '<td><strong>TOTAL</strong></td>'
+            html += f'<td class="text-right"><strong>{report_data["checks_efts_total"]}</strong></td>'
+            html += '<td></td>'
             html += '</tr>'
         html += '</tbody></table>'
 

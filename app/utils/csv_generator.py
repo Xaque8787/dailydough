@@ -205,12 +205,22 @@ def generate_tip_report_csv(db: Session, start_date: date, end_date: date, curre
             header_row = ["Employee Name", "Position"] + [payroll_reqs_map[field] for field in payroll_reqs_map.keys()]
             writer.writerow(header_row)
 
+            # Calculate column totals
+            column_totals = {field: 0 for field in payroll_reqs_map.keys()}
+
             for emp_data in payroll_summary_data:
                 row = [emp_data["employee"], emp_data["position"]]
                 for field in payroll_reqs_map.keys():
                     value = emp_data.get(field, 0)
                     row.append(f"${value:.2f}")
+                    column_totals[field] += value
                 writer.writerow(row)
+
+            # Add total row
+            total_row = ["TOTAL", ""]
+            for field in payroll_reqs_map.keys():
+                total_row.append(f"${column_totals[field]:.2f}")
+            writer.writerow(total_row)
         else:
             writer.writerow(["No payroll summary data available for this period"])
 
@@ -408,6 +418,7 @@ def generate_consolidated_daily_balance_csv(db: Session, start_date: date, end_d
         if all_checks_efts:
             writer.writerow(["Checks & EFT Summary"])
             writer.writerow(["Type", "Date", "Number/Card", "Payable To", "Total", "Memo"])
+            total_checks_efts = 0
             for item in all_checks_efts:
                 writer.writerow([
                     item['type'],
@@ -417,6 +428,9 @@ def generate_consolidated_daily_balance_csv(db: Session, start_date: date, end_d
                     f"${item['total']:.2f}",
                     item['memo']
                 ])
+                total_checks_efts += item['total']
+            # Add total row
+            writer.writerow(["", "", "", "TOTAL", f"${total_checks_efts:.2f}", ""])
             writer.writerow([])
             writer.writerow([])
 
