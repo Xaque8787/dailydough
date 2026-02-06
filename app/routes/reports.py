@@ -146,6 +146,15 @@ async def view_saved_daily_balance_report(
     if not report_data:
         return RedirectResponse(url="/reports/daily-balance", status_code=303)
 
+    from app.utils.csv_reader import _is_automated_report
+    is_automated = _is_automated_report(filepath)
+
+    is_deletable = not is_automated
+    if filename.startswith('daily-balance-') and filename.endswith('.csv'):
+        parts = filename.replace('daily-balance-', '').replace('.csv', '').split('-to-')
+        if len(parts) == 2 and parts[0] == parts[1]:
+            is_deletable = False
+
     return templates.TemplateResponse(
         "reports/view_saved_daily_balance_report.html",
         {
@@ -154,7 +163,8 @@ async def view_saved_daily_balance_report(
             "filename": filename,
             "report_data": report_data,
             "year": year,
-            "month": month
+            "month": month,
+            "is_deletable": is_deletable
         }
     )
 
@@ -178,6 +188,54 @@ async def download_saved_daily_balance_report(
         filename=filename,
         media_type="text/csv"
     )
+
+@router.delete("/reports/daily-balance/delete/{year}/{month}/{filename}")
+async def delete_saved_daily_balance_report(
+    year: str,
+    month: str,
+    filename: str,
+    current_user: User = Depends(get_current_user)
+):
+    if not current_user:
+        return JSONResponse(
+            status_code=401,
+            content={"success": False, "message": "Unauthorized"}
+        )
+
+    filepath = os.path.join("data", "reports", "daily_report", year, month, filename)
+
+    if not os.path.exists(filepath):
+        return JSONResponse(
+            status_code=404,
+            content={"success": False, "message": "Report file not found"}
+        )
+
+    from app.utils.csv_reader import _is_automated_report
+    if _is_automated_report(filepath):
+        return JSONResponse(
+            status_code=403,
+            content={"success": False, "message": "Cannot delete automated reports"}
+        )
+
+    if filename.startswith('daily-balance-') and filename.endswith('.csv'):
+        parts = filename.replace('daily-balance-', '').replace('.csv', '').split('-to-')
+        if len(parts) == 2 and parts[0] == parts[1]:
+            return JSONResponse(
+                status_code=403,
+                content={"success": False, "message": "Cannot delete daily balance finalizations"}
+            )
+
+    try:
+        os.remove(filepath)
+        return JSONResponse(
+            status_code=200,
+            content={"success": True, "message": "Report deleted successfully"}
+        )
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content={"success": False, "message": f"Error deleting report: {str(e)}"}
+        )
 
 @router.get("/reports/daily-balance/saved")
 async def saved_daily_balance_reports(
@@ -362,7 +420,9 @@ async def generate_employee_tip_report_endpoint(
         )
 
     filename = generate_employee_tip_report_csv(db, employee, start_date_obj, end_date_obj, current_user=current_user, source="user")
-    filepath = os.path.join("data/reports/tip_report", filename)
+    year = str(start_date_obj.year)
+    month = f"{start_date_obj.month:02d}"
+    filepath = os.path.join("data/reports/tip_report", year, month, filename)
 
     if not os.path.exists(filepath):
         return JSONResponse(
@@ -401,7 +461,9 @@ async def export_employee_tip_report(
         return RedirectResponse(url=f"/reports/tip-report/employee/{employee_slug}", status_code=303)
 
     filename = generate_employee_tip_report_csv(db, employee, start_date_obj, end_date_obj, current_user=current_user, source="user")
-    filepath = os.path.join("data/reports/tip_report", filename)
+    year = str(start_date_obj.year)
+    month = f"{start_date_obj.month:02d}"
+    filepath = os.path.join("data/reports/tip_report", year, month, filename)
 
     if not os.path.exists(filepath):
         return RedirectResponse(url=f"/reports/tip-report/employee/{employee_slug}", status_code=303)
@@ -429,7 +491,9 @@ async def export_tip_report(
         return RedirectResponse(url="/reports/tip-report", status_code=303)
 
     filename = generate_tip_report_csv(db, start_date_obj, end_date_obj, current_user=current_user, source="user")
-    filepath = os.path.join("data/reports/tip_report", filename)
+    year = str(start_date_obj.year)
+    month = f"{start_date_obj.month:02d}"
+    filepath = os.path.join("data/reports/tip_report", year, month, filename)
 
     if not os.path.exists(filepath):
         return RedirectResponse(url="/reports/tip-report", status_code=303)
@@ -459,16 +523,18 @@ async def saved_tip_reports(
         }
     )
 
-@router.get("/reports/tip-report/view/{filename}")
+@router.get("/reports/tip-report/view/{year}/{month}/{filename}")
 async def view_saved_tip_report(
     request: Request,
+    year: str,
+    month: str,
     filename: str,
     current_user: User = Depends(get_current_user)
 ):
     if not current_user:
         return RedirectResponse(url="/login", status_code=303)
 
-    filepath = os.path.join("data/reports/tip_report", filename)
+    filepath = os.path.join("data/reports/tip_report", year, month, filename)
 
     if not os.path.exists(filepath):
         return RedirectResponse(url="/reports/tip-report", status_code=303)
@@ -482,25 +548,34 @@ async def view_saved_tip_report(
     if report_data.get('summary'):
         print(f"DEBUG: First summary item: {report_data['summary'][0]}")
 
+    from app.utils.csv_reader import _is_automated_report
+    is_automated = _is_automated_report(filepath)
+    is_deletable = not is_automated
+
     return templates.TemplateResponse(
         "reports/view_saved_tip_report.html",
         {
             "request": request,
             "current_user": current_user,
             "filename": filename,
-            "report_data": report_data
+            "year": year,
+            "month": month,
+            "report_data": report_data,
+            "is_deletable": is_deletable
         }
     )
 
-@router.get("/reports/tip-report/download/{filename}")
+@router.get("/reports/tip-report/download/{year}/{month}/{filename}")
 async def download_saved_tip_report(
+    year: str,
+    month: str,
     filename: str,
     current_user: User = Depends(get_current_user)
 ):
     if not current_user:
         return RedirectResponse(url="/login", status_code=303)
 
-    filepath = os.path.join("data/reports/tip_report", filename)
+    filepath = os.path.join("data/reports/tip_report", year, month, filename)
 
     if not os.path.exists(filepath):
         return RedirectResponse(url="/reports/tip-report", status_code=303)
@@ -510,6 +585,46 @@ async def download_saved_tip_report(
         filename=filename,
         media_type="text/csv"
     )
+
+@router.delete("/reports/tip-report/delete/{year}/{month}/{filename}")
+async def delete_saved_tip_report(
+    year: str,
+    month: str,
+    filename: str,
+    current_user: User = Depends(get_current_user)
+):
+    if not current_user:
+        return JSONResponse(
+            status_code=401,
+            content={"success": False, "message": "Unauthorized"}
+        )
+
+    filepath = os.path.join("data/reports/tip_report", year, month, filename)
+
+    if not os.path.exists(filepath):
+        return JSONResponse(
+            status_code=404,
+            content={"success": False, "message": "Report file not found"}
+        )
+
+    from app.utils.csv_reader import _is_automated_report
+    if _is_automated_report(filepath):
+        return JSONResponse(
+            status_code=403,
+            content={"success": False, "message": "Cannot delete automated reports"}
+        )
+
+    try:
+        os.remove(filepath)
+        return JSONResponse(
+            status_code=200,
+            content={"success": True, "message": "Report deleted successfully"}
+        )
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content={"success": False, "message": f"Error deleting report: {str(e)}"}
+        )
 
 @router.get("/reports/api/admin-users")
 async def get_admin_users_for_email(
@@ -744,7 +859,9 @@ async def email_tip_report(
         )
 
     filename = generate_tip_report_csv(db, start_date_obj, end_date_obj, current_user=current_user, source="user")
-    filepath = os.path.join("data/reports/tip_report", filename)
+    year = str(start_date_obj.year)
+    month = f"{start_date_obj.month:02d}"
+    filepath = os.path.join("data/reports/tip_report", year, month, filename)
 
     if not os.path.exists(filepath):
         return JSONResponse(
@@ -775,9 +892,11 @@ async def email_tip_report(
             content=result
         )
 
-@router.post("/reports/tip-report/email/{filename}")
+@router.post("/reports/tip-report/email/{year}/{month}/{filename}")
 async def email_saved_tip_report(
     request: Request,
+    year: str,
+    month: str,
     filename: str,
     current_user: User = Depends(get_current_user)
 ):
@@ -806,7 +925,7 @@ async def email_saved_tip_report(
             content={"success": False, "message": "No valid email addresses provided"}
         )
 
-    filepath = os.path.join("data/reports/tip_report", filename)
+    filepath = os.path.join("data/reports/tip_report", year, month, filename)
 
     if not os.path.exists(filepath):
         return JSONResponse(
@@ -886,7 +1005,9 @@ async def email_employee_tip_report(
         )
 
     filename = generate_employee_tip_report_csv(db, employee, start_date_obj, end_date_obj)
-    filepath = os.path.join("data/reports/tip_report", filename)
+    year = str(start_date_obj.year)
+    month = f"{start_date_obj.month:02d}"
+    filepath = os.path.join("data/reports/tip_report", year, month, filename)
 
     if not os.path.exists(filepath):
         return JSONResponse(
