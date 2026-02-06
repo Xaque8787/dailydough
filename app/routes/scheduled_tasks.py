@@ -686,6 +686,44 @@ def cleanup_orphaned_executions():
     finally:
         db.close()
 
+def cleanup_orphaned_scheduler_jobs(db):
+    """Remove APScheduler jobs that don't have a corresponding database task"""
+    try:
+        # Get all active task IDs from database
+        active_task_ids = {row[0] for row in db.execute(text("""
+            SELECT id FROM scheduled_tasks WHERE is_active = 1
+        """)).fetchall()}
+
+        # Get all job IDs from APScheduler
+        all_jobs = scheduler.get_jobs()
+
+        removed_count = 0
+        for job in all_jobs:
+            # Job IDs are in format "task_{id}"
+            if job.id.startswith("task_"):
+                try:
+                    task_id = int(job.id.replace("task_", ""))
+
+                    # If task doesn't exist in database, remove the job
+                    if task_id not in active_task_ids:
+                        scheduler.remove_job(job.id)
+                        removed_count += 1
+                        print(f"  ✓ Removed orphaned job: {job.id} ('{job.name}')")
+                except ValueError:
+                    # If job ID doesn't follow our naming convention, skip it
+                    print(f"  ⚠ Skipping job with unexpected ID format: {job.id}")
+                    continue
+
+        if removed_count > 0:
+            print(f"✓ Cleaned up {removed_count} orphaned APScheduler job(s)")
+
+        return removed_count
+    except Exception as e:
+        print(f"  ✗ Failed to cleanup orphaned APScheduler jobs: {e}")
+        import traceback
+        traceback.print_exc()
+        return 0
+
 def load_scheduled_tasks():
     """Load all active scheduled tasks from the database and add them to the scheduler"""
     db = SessionLocal()
@@ -716,6 +754,9 @@ def load_scheduled_tasks():
                 traceback.print_exc()
 
         print(f"✓ Loaded {loaded_count}/{len(tasks)} scheduled tasks into APScheduler")
+
+        # Cleanup orphaned APScheduler jobs (jobs that exist in APScheduler but not in database)
+        cleanup_orphaned_scheduler_jobs(db)
 
     except Exception as e:
         print(f"✗ Failed to load scheduled tasks: {e}")
