@@ -146,6 +146,15 @@ async def view_saved_daily_balance_report(
     if not report_data:
         return RedirectResponse(url="/reports/daily-balance", status_code=303)
 
+    from app.utils.csv_reader import _is_automated_report
+    is_automated = _is_automated_report(filepath)
+
+    is_deletable = not is_automated
+    if filename.startswith('daily-balance-') and filename.endswith('.csv'):
+        parts = filename.replace('daily-balance-', '').replace('.csv', '').split('-to-')
+        if len(parts) == 2 and parts[0] == parts[1]:
+            is_deletable = False
+
     return templates.TemplateResponse(
         "reports/view_saved_daily_balance_report.html",
         {
@@ -154,7 +163,8 @@ async def view_saved_daily_balance_report(
             "filename": filename,
             "report_data": report_data,
             "year": year,
-            "month": month
+            "month": month,
+            "is_deletable": is_deletable
         }
     )
 
@@ -538,6 +548,10 @@ async def view_saved_tip_report(
     if report_data.get('summary'):
         print(f"DEBUG: First summary item: {report_data['summary'][0]}")
 
+    from app.utils.csv_reader import _is_automated_report
+    is_automated = _is_automated_report(filepath)
+    is_deletable = not is_automated
+
     return templates.TemplateResponse(
         "reports/view_saved_tip_report.html",
         {
@@ -546,7 +560,8 @@ async def view_saved_tip_report(
             "filename": filename,
             "year": year,
             "month": month,
-            "report_data": report_data
+            "report_data": report_data,
+            "is_deletable": is_deletable
         }
     )
 
