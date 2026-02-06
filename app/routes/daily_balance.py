@@ -273,17 +273,21 @@ def save_daily_balance_data(
 
     return daily_balance
 
-def serialize_employee_position_combo(emp, position, db):
+def serialize_employee_position_combo(emp, position, db, status_indicator=None):
     requirements_with_order = sorted(
         position.tip_requirements,
         key=lambda req: req.display_order
     )
 
+    display_name = emp.display_name
+    if status_indicator:
+        display_name = f"{emp.display_name} {status_indicator}"
+
     return {
         "combo_id": f"{emp.id}-{position.id}",
         "id": emp.id,
         "name": emp.name,
-        "display_name": emp.display_name,
+        "display_name": display_name,
         "position": {
             "id": position.id,
             "name": position.name,
@@ -307,7 +311,88 @@ def serialize_employee_position_combo(emp, position, db):
             ]
         },
         "position_name_sort_key": position.name,
-        "display_name_sort_key": emp.display_name
+        "display_name_sort_key": emp.display_name,
+        "status_indicator": status_indicator
+    }
+
+def serialize_employee_position_from_snapshot(entry, db):
+    """
+    Serialize an employee position combo using snapshot data when the employee or position has been deleted.
+    This is used for displaying historical data.
+    """
+    # Get tip requirements from the position if it still exists, otherwise use empty list
+    position = db.query(Position).filter(Position.id == entry.position_id).first()
+    if position:
+        requirements_with_order = sorted(
+            position.tip_requirements,
+            key=lambda req: req.display_order
+        )
+        tip_requirements = [
+            {
+                "id": req.id,
+                "name": req.name,
+                "field_name": req.field_name,
+                "display_order": req.display_order,
+                "no_input": req.no_input,
+                "is_total": req.is_total,
+                "is_deduction": req.is_deduction,
+                "no_null_value": req.no_null_value,
+                "apply_to_revenue": req.apply_to_revenue,
+                "revenue_is_deduction": req.revenue_is_deduction,
+                "apply_to_expense": req.apply_to_expense,
+                "expense_is_deduction": req.expense_is_deduction,
+                "record_data": req.record_data,
+                "include_in_payroll_summary": req.include_in_payroll_summary
+            } for req in requirements_with_order
+        ]
+        position_name = position.name
+    else:
+        # Position was deleted, use snapshot and reconstruct tip requirements from stored tip_values
+        tip_requirements = []
+        if entry.tip_values:
+            for field_name, value in entry.tip_values.items():
+                tip_requirements.append({
+                    "id": 0,
+                    "name": field_name.replace("_", " ").title(),
+                    "field_name": field_name,
+                    "display_order": 0,
+                    "no_input": False,
+                    "is_total": False,
+                    "is_deduction": False,
+                    "no_null_value": False,
+                    "apply_to_revenue": False,
+                    "revenue_is_deduction": False,
+                    "apply_to_expense": False,
+                    "expense_is_deduction": False,
+                    "record_data": False,
+                    "include_in_payroll_summary": False
+                })
+        position_name = entry.position_name_snapshot
+
+    employee_name = entry.employee_name_snapshot
+    status_indicator = "(Deleted)"
+
+    # Check if employee exists and is inactive (not deleted)
+    employee = db.query(Employee).filter(Employee.id == entry.employee_id).first()
+    if employee and not employee.is_active:
+        status_indicator = "(Inactive)"
+        employee_name = employee.display_name  # Use current name if just inactive
+
+    display_name_with_status = f"{employee_name} {status_indicator}"
+
+    return {
+        "combo_id": f"{entry.employee_id}-{entry.position_id}",
+        "id": entry.employee_id,
+        "name": employee_name,
+        "display_name": display_name_with_status,
+        "position": {
+            "id": entry.position_id,
+            "name": position_name,
+            "tip_requirements": tip_requirements
+        },
+        "position_name_sort_key": position_name,
+        "display_name_sort_key": employee_name,
+        "status_indicator": status_indicator
     }
 
 @router.get("/daily-balance", response_class=HTMLResponse)
@@ -352,8 +437,16 @@ async def daily_balance_page(
     working_combos = []
     if daily_balance:
         for entry in daily_balance.employee_entries:
+            # If employee and position still exist, use live data
             if entry.employee and entry.position:
-                working_combos.append(serialize_employee_position_combo(entry.employee, entry.position, db))
+                # Check if employee is inactive
+                if not entry.employee.is_active:
+                    working_combos.append(serialize_employee_position_combo(entry.employee, entry.position, db, status_indicator="(Inactive)"))
+                else:
+                    working_combos.append(serialize_employee_position_combo(entry.employee, entry.position, db))
+            else:
+                # Employee or position was deleted - use snapshot data
+                working_combos.append(serialize_employee_position_from_snapshot(entry, db))
     else:
         working_combos = scheduled_combos
 
@@ -480,8 +573,16 @@ async def save_daily_balance_route(
         working_combos = []
         if daily_balance:
             for entry in daily_balance.employee_entries:
+                # If employee and position still exist, use live data
                 if entry.employee and entry.position:
-                    working_combos.append(serialize_employee_position_combo(entry.employee, entry.position, db))
+                    # Check if employee is inactive
+                    if not entry.employee.is_active:
+                        working_combos.append(serialize_employee_position_combo(entry.employee, entry.position, db, status_indicator="(Inactive)"))
+                    else:
+                        working_combos.append(serialize_employee_position_combo(entry.employee, entry.position, db))
+                else:
+                    # Employee or position was deleted - use snapshot data
+                    working_combos.append(serialize_employee_position_from_snapshot(entry, db))
         else:
             working_combos = scheduled_combos
 
@@ -584,8 +685,16 @@ async def finalize_daily_balance_route(
         working_combos = []
         if daily_balance:
             for entry in daily_balance.employee_entries:
+                # If employee and position still exist, use live data
                 if entry.employee and entry.position:
-                    working_combos.append(serialize_employee_position_combo(entry.employee, entry.position, db))
+                    # Check if employee is inactive
+                    if not entry.employee.is_active:
+                        working_combos.append(serialize_employee_position_combo(entry.employee, entry.position, db, status_indicator="(Inactive)"))
+                    else:
+                        working_combos.append(serialize_employee_position_combo(entry.employee, entry.position, db))
+                else:
+                    # Employee or position was deleted - use snapshot data
+                    working_combos.append(serialize_employee_position_from_snapshot(entry, db))
         else:
             working_combos = scheduled_combos
 
