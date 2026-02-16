@@ -109,6 +109,10 @@ class DailyBalance(Base):
     created_by_user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     created_by_source = Column(String, default="user")
     edited_by_user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    edited_at = Column(DateTime, nullable=True)
+    generated_by_user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    generated_at = Column(DateTime, nullable=True)
+    finalized_by_user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     finalized_at = Column(DateTime, nullable=True)
 
     employee_entries = relationship("DailyEmployeeEntry", back_populates="daily_balance", cascade="all, delete-orphan")
@@ -117,6 +121,8 @@ class DailyBalance(Base):
     efts = relationship("DailyBalanceEFT", back_populates="daily_balance", cascade="all, delete-orphan")
     created_by_user = relationship("User", foreign_keys=[created_by_user_id])
     edited_by_user = relationship("User", foreign_keys=[edited_by_user_id])
+    generated_by_user = relationship("User", foreign_keys=[generated_by_user_id])
+    finalized_by_user = relationship("User", foreign_keys=[finalized_by_user_id])
 
 class DailyEmployeeEntry(Base):
     __tablename__ = "daily_employee_entries"

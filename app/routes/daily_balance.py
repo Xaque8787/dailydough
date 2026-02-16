@@ -45,7 +45,10 @@ def save_daily_balance_data(
             finalized=finalized,
             created_by_user_id=current_user.id if current_user else None,
             created_by_source=source,
-            finalized_at=datetime.now() if finalized else None
+            generated_by_user_id=current_user.id if current_user else None,
+            generated_at=datetime.now(),
+            finalized_at=datetime.now() if finalized else None,
+            finalized_by_user_id=current_user.id if (finalized and current_user) else None
         )
         db.add(daily_balance)
         db.flush()
@@ -56,9 +59,15 @@ def save_daily_balance_data(
 
         if current_user:
             daily_balance.edited_by_user_id = current_user.id
+            daily_balance.edited_at = datetime.now()
+
+        if not daily_balance.generated_by_user_id and current_user:
+            daily_balance.generated_by_user_id = current_user.id
+            daily_balance.generated_at = datetime.now()
 
         if finalized and not was_finalized:
             daily_balance.finalized_at = datetime.now()
+            daily_balance.finalized_by_user_id = current_user.id if current_user else None
             if not daily_balance.created_by_user_id and current_user:
                 daily_balance.created_by_user_id = current_user.id
                 daily_balance.created_by_source = source
