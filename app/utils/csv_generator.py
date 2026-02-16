@@ -50,10 +50,18 @@ def generate_daily_balance_csv(daily_balance: DailyBalance, employee_entries: Li
         if daily_balance.finalized_at:
             writer.writerow(["Finalized At", daily_balance.finalized_at.strftime("%Y-%m-%d %I:%M:%S %p")])
 
-        if daily_balance.edited_by_user:
-            writer.writerow(["Last Edited By", daily_balance.edited_by_user.username])
+        should_write_edited = (
+            daily_balance.edited_by_user and
+            daily_balance.edited_at and
+            (
+                not daily_balance.finalized_by_user or
+                daily_balance.edited_by_user.id != daily_balance.finalized_by_user.id or
+                daily_balance.edited_at != daily_balance.finalized_at
+            )
+        )
 
-        if daily_balance.edited_at:
+        if should_write_edited:
+            writer.writerow(["Last Edited By", daily_balance.edited_by_user.username])
             writer.writerow(["Last Edited At", daily_balance.edited_at.strftime("%Y-%m-%d %I:%M:%S %p")])
 
         writer.writerow([])
@@ -469,10 +477,18 @@ def generate_consolidated_daily_balance_csv(db: Session, start_date: date, end_d
             if daily_balance.finalized_at:
                 writer.writerow(["Report Finalized At", daily_balance.finalized_at.strftime("%Y-%m-%d %I:%M:%S %p")])
 
-            if daily_balance.edited_by_user:
-                writer.writerow(["Report Edited By", daily_balance.edited_by_user.username])
+            should_write_edited = (
+                daily_balance.edited_by_user and
+                daily_balance.edited_at and
+                (
+                    not daily_balance.finalized_by_user or
+                    daily_balance.edited_by_user.id != daily_balance.finalized_by_user.id or
+                    daily_balance.edited_at != daily_balance.finalized_at
+                )
+            )
 
-            if daily_balance.edited_at:
+            if should_write_edited:
+                writer.writerow(["Report Edited By", daily_balance.edited_by_user.username])
                 writer.writerow(["Report Edited At", daily_balance.edited_at.strftime("%Y-%m-%d %I:%M:%S %p")])
 
             if daily_balance.notes:

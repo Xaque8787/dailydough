@@ -17,11 +17,14 @@
                 {% if report_data.generated_at %}
                 <span><strong>Generated At:</strong> {{ report_data.generated_at }}</span>
                 {% endif %}
-                {% if report_data.finalized_by %}
-                <span><strong>Finalized By:</strong> {{ report_data.finalized_by }}</span>
-                {% endif %}
                 {% if report_data.finalized_at %}
-                <span><strong>Finalized At:</strong> {{ report_data.finalized_at }}</span>
+                    {% if report_data.finalized_by %}
+                    <span><strong>Finalized At:</strong> {{ report_data.finalized_at }} by {{ report_data.finalized_by }}</span>
+                    {% else %}
+                    <span><strong>Finalized At:</strong> {{ report_data.finalized_at }}</span>
+                    {% endif %}
+                {% elif report_data.finalized_by %}
+                <span><strong>Finalized By:</strong> {{ report_data.finalized_by }}</span>
                 {% endif %}
                 {% if report_data.edited_by %}
                 <span><strong>Last Edited By:</strong> {{ report_data.edited_by }}</span>

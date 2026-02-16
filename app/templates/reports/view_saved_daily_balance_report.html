@@ -17,11 +17,14 @@
                 {% if report_data.generated_at %}
                 <span><strong>Generated At:</strong> {{ report_data.generated_at }}</span>
                 {% endif %}
-                {% if report_data.finalized_by %}
-                <span><strong>Finalized By:</strong> {{ report_data.finalized_by }}</span>
-                {% endif %}
                 {% if report_data.finalized_at %}
-                <span><strong>Finalized At:</strong> {{ report_data.finalized_at }}</span>
+                    {% if report_data.finalized_by %}
+                    <span><strong>Finalized At:</strong> {{ report_data.finalized_at }} by {{ report_data.finalized_by }}</span>
+                    {% else %}
+                    <span><strong>Finalized At:</strong> {{ report_data.finalized_at }}</span>
+                    {% endif %}
+                {% elif report_data.finalized_by %}
+                <span><strong>Finalized By:</strong> {{ report_data.finalized_by }}</span>
                 {% endif %}
                 {% if report_data.edited_by %}
                 <span><strong>Last Edited By:</strong> {{ report_data.edited_by }}</span>
@@ -95,11 +98,14 @@
             {% if daily_report.generated_at %}
             <div><strong>Report Generated At:</strong> {{ daily_report.generated_at }}</div>
             {% endif %}
-            {% if daily_report.finalized_by %}
-            <div><strong>Report Finalized By:</strong> {{ daily_report.finalized_by }}</div>
-            {% endif %}
             {% if daily_report.finalized_at %}
-            <div><strong>Report Finalized At:</strong> {{ daily_report.finalized_at }}</div>
+                {% if daily_report.finalized_by %}
+                <div><strong>Report Finalized At:</strong> {{ daily_report.finalized_at }} by {{ daily_report.finalized_by }}</div>
+                {% else %}
+                <div><strong>Report Finalized At:</strong> {{ daily_report.finalized_at }}</div>
+                {% endif %}
+            {% elif daily_report.finalized_by %}
+            <div><strong>Report Finalized By:</strong> {{ daily_report.finalized_by }}</div>
             {% endif %}
             {% if daily_report.edited_by %}
             <div><strong>Last Edited By:</strong> {{ daily_report.edited_by }}</div>

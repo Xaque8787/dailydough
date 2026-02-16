@@ -57,7 +57,7 @@ def save_daily_balance_data(
         was_finalized = daily_balance.finalized
         daily_balance.finalized = finalized
 
-        if current_user:
+        if current_user and was_finalized:
             daily_balance.edited_by_user_id = current_user.id
             daily_balance.edited_at = datetime.now()
 
