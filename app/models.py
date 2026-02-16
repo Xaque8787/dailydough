@@ -109,6 +109,7 @@ class DailyBalance(Base):
     created_by_user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     created_by_source = Column(String, default="user")
     edited_by_user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    edited_at = Column(DateTime, nullable=True)
     generated_by_user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     generated_at = Column(DateTime, nullable=True)
     finalized_by_user_id = Column(Integer, ForeignKey("users.id"), nullable=True)

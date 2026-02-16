@@ -53,6 +53,9 @@ def generate_daily_balance_csv(daily_balance: DailyBalance, employee_entries: Li
         if daily_balance.edited_by_user:
             writer.writerow(["Last Edited By", daily_balance.edited_by_user.username])
 
+        if daily_balance.edited_at:
+            writer.writerow(["Last Edited At", daily_balance.edited_at.strftime("%Y-%m-%d %I:%M:%S %p")])
+
         writer.writerow([])
 
         writer.writerow([f"Date: {daily_balance.date} - {daily_balance.day_of_week}"])
@@ -468,6 +471,9 @@ def generate_consolidated_daily_balance_csv(db: Session, start_date: date, end_d
 
             if daily_balance.edited_by_user:
                 writer.writerow(["Report Edited By", daily_balance.edited_by_user.username])
+
+            if daily_balance.edited_at:
+                writer.writerow(["Report Edited At", daily_balance.edited_at.strftime("%Y-%m-%d %I:%M:%S %p")])
 
             if daily_balance.notes:
                 writer.writerow(["Notes", daily_balance.notes])

@@ -7,12 +7,14 @@ Tracks both the user who generated the report (on first save) and who finalized 
 Changes:
 - Add generated_by_user_id column to track who created the report
 - Add generated_at column to track when the report was first created
+- Add edited_at column to track when the report was last edited
 - Add finalized_by_user_id column to track who finalized the report
 
 Notes:
 - Both generated_by and finalized_by will always be shown in reports for consistency
+- edited_at only tracks the LAST edit time, not a full audit log
 - For existing records, we'll populate generated_by from created_by_user_id if available
-- This provides a complete audit trail of report creation and finalization
+- This provides a complete audit trail of report creation, editing, and finalization
 """
 
 MIGRATION_ID = "2026_02_16_add_report_metadata_fields"
@@ -38,6 +40,15 @@ def upgrade(conn, column_exists, table_exists):
         print("  ✓ Added generated_at column to daily_balance table")
     else:
         print("  ℹ️  generated_at column already exists, skipping")
+
+    if not column_exists('daily_balance', 'edited_at'):
+        cursor.execute("""
+            ALTER TABLE daily_balance
+            ADD COLUMN edited_at TIMESTAMP
+        """)
+        print("  ✓ Added edited_at column to daily_balance table")
+    else:
+        print("  ℹ️  edited_at column already exists, skipping")
 
     if not column_exists('daily_balance', 'finalized_by_user_id'):
         cursor.execute("""

@@ -59,6 +59,7 @@ def save_daily_balance_data(
 
         if current_user:
             daily_balance.edited_by_user_id = current_user.id
+            daily_balance.edited_at = datetime.now()
 
         if not daily_balance.generated_by_user_id and current_user:
             daily_balance.generated_by_user_id = current_user.id
