@@ -1485,10 +1485,6 @@ function validateFormBeforeSubmit(event, isForFinalize) {
                 errors.push(`• ${entryLabel} - Check Number cannot be empty`);
                 checkNumberField.classList.add('field-error-highlight');
                 invalidFields.push(checkNumberField);
-            } else if (checkNumberField && (isNaN(checkNumberField.value) || parseFloat(checkNumberField.value) <= 0)) {
-                errors.push(`• ${entryLabel} - Check Number must be a positive number`);
-                checkNumberField.classList.add('field-error-highlight');
-                invalidFields.push(checkNumberField);
             }
 
             if (payableToField && (!payableToField.value || payableToField.value.trim() === '')) {
@@ -1513,10 +1509,6 @@ function validateFormBeforeSubmit(event, isForFinalize) {
 
             if (cardNumberField && (!cardNumberField.value || cardNumberField.value.trim() === '')) {
                 errors.push(`• ${entryLabel} - Card Number cannot be empty`);
-                cardNumberField.classList.add('field-error-highlight');
-                invalidFields.push(cardNumberField);
-            } else if (cardNumberField && (isNaN(cardNumberField.value) || parseFloat(cardNumberField.value) <= 0)) {
-                errors.push(`• ${entryLabel} - Card Number must be a positive number`);
                 cardNumberField.classList.add('field-error-highlight');
                 invalidFields.push(cardNumberField);
             }
