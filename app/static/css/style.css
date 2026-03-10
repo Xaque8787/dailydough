@@ -818,6 +818,8 @@ body {
     display: block;
     width: 100%;
     box-sizing: border-box;
+    flex-shrink: 0;
+    clear: both;
 }
 
 .employee-checkbox-item {
@@ -833,6 +835,8 @@ body {
     box-sizing: border-box;
     flex-direction: row;
     flex-wrap: nowrap;
+    flex-shrink: 0;
+    min-width: 100%;
 }
 
 .employee-checkbox-item:hover {
