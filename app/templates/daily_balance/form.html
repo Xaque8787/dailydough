@@ -144,7 +144,8 @@
                                 <input type="number" step="0.01"
                                        name="financial_item_{{ template.id }}"
                                        class="table1-field"
-                                       value="{% if financial_line_items.get('revenue_' + template.id|string) %}{{ financial_line_items.get('revenue_' + template.id|string).value|format_decimal }}{% else %}0.00{% endif %}"
+                                       {% set fin_item = financial_line_items.get('revenue_' + template.id|string) %}
+                                       value="{{ fin_item.value|format_decimal if fin_item else '0.00' }}"
                                        {% if daily_balance and daily_balance.finalized and not edit_mode %}readonly{% endif %}>
                             </td>
                         </tr>
@@ -235,7 +236,8 @@
                                 <input type="number" step="0.01"
                                        name="financial_item_{{ template.id }}"
                                        class="table2-field"
-                                       value="{% if financial_line_items.get('expense_' + template.id|string) %}{{ financial_line_items.get('expense_' + template.id|string).value|format_decimal }}{% else %}0.00{% endif %}"
+                                       {% set fin_item = financial_line_items.get('expense_' + template.id|string) %}
+                                       value="{{ fin_item.value|format_decimal if fin_item else '0.00' }}"
                                        {% if daily_balance and daily_balance.finalized and not edit_mode %}readonly{% endif %}>
                             </td>
                         </tr>
@@ -450,8 +452,10 @@
                         <div class="form-group">
                             <label>{{ req.name }}{% if req.no_null_value and not req.is_total %} <span style="color: #dc2626;">*</span>{% endif %}</label>
                             {% if req.is_total %}
+                            {% set entry = employee_entries.get(emp.combo_id) %}
+                            {% set tip_val = entry.tip_values.get(req.field_name) if entry and entry.tip_values else None %}
                             <input type="number" step="0.01" readonly
-                                   value="{% if employee_entries.get(emp.combo_id) and employee_entries.get(emp.combo_id).tip_values and employee_entries.get(emp.combo_id).tip_values.get(req.field_name) %}{{ employee_entries.get(emp.combo_id).tip_values.get(req.field_name)|format_decimal %}{% else %}0.00{% endif %}"
+                                   value="{{ tip_val|format_decimal if tip_val is not none else '0.00' }}"
                                    class="calculated-field tip-total-field"
                                    data-combo-id="{{ emp.combo_id }}"
                                    data-field-name="{{ req.field_name }}">
