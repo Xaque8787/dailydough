@@ -411,11 +411,14 @@
         {% if not (daily_balance and daily_balance.finalized and not edit_mode) %}
         <div id="add-employee-modal" class="add-employee-modal" style="display: none;">
             <div class="modal-content-inline">
-                <h4>Add Employee</h4>
-                <select id="employee-to-add" class="employee-add-select">
-                    <option value="">Select an employee...</option>
-                </select>
-                <button type="button" class="btn btn-primary btn-sm" onclick="addSelectedEmployee()">Add</button>
+                <h4>Add Employees</h4>
+                <div style="margin-bottom: 10px;">
+                    <button type="button" class="btn btn-sm" onclick="selectAllEmployees(true)" style="margin-right: 5px;">Select All</button>
+                    <button type="button" class="btn btn-sm" onclick="selectAllEmployees(false)">Deselect All</button>
+                </div>
+                <div id="employee-checkbox-list" style="max-height: 400px; overflow-y: auto; border: 1px solid #ddd; padding: 10px; border-radius: 4px; margin-bottom: 10px;">
+                </div>
+                <button type="button" class="btn btn-primary btn-sm" onclick="addSelectedEmployees()">Add Selected</button>
                 <button type="button" class="btn btn-secondary btn-sm" onclick="toggleAddEmployeeModal()">Cancel</button>
             </div>
         </div>
@@ -443,27 +446,12 @@
 
                 <div class="form-row">
                     {% for req in emp.position.tip_requirements %}
-                        {% if req.record_data and req.no_input %}
-                        <div class="form-group">
-                            <label class="checkbox-label" style="display: flex; align-items: center; cursor: pointer; user-select: none;">
-                                <input type="checkbox"
-                                       name="checkbox_{{ req.field_name }}_{{ emp.combo_id }}"
-                                       class="checkbox-input"
-                                       value="1"
-                                       data-combo-id="{{ emp.combo_id }}"
-                                       data-field-name="{{ req.field_name }}"
-                                       {% if employee_entries.get(emp.combo_id) and employee_entries.get(emp.combo_id).is_checkbox_selected(req.field_name) %}checked{% endif %}
-                                       {% if daily_balance and daily_balance.finalized and not edit_mode %}disabled{% endif %}
-                                       style="margin-right: 8px; width: 18px; height: 18px; cursor: pointer;">
-                                <span style="font-weight: 500;">{{ req.name }}</span>
-                            </label>
-                        </div>
-                        {% elif not req.no_input or req.is_total %}
+                        {% if not req.no_input or req.is_total %}
                         <div class="form-group">
                             <label>{{ req.name }}{% if req.no_null_value and not req.is_total %} <span style="color: #dc2626;">*</span>{% endif %}</label>
                             {% if req.is_total %}
                             <input type="number" step="0.01" readonly
-                                   value="{% if employee_entries.get(emp.combo_id) and employee_entries.get(emp.combo_id).tip_values and employee_entries.get(emp.combo_id).tip_values.get(req.field_name) %}{{ employee_entries.get(emp.combo_id).tip_values.get(req.field_name)|format_decimal }}{% else %}0.00{% endif %}"
+                                   value="{% if employee_entries.get(emp.combo_id) and employee_entries.get(emp.combo_id).tip_values and employee_entries.get(emp.combo_id).tip_values.get(req.field_name) %}{{ employee_entries.get(emp.combo_id).tip_values.get(req.field_name)|format_decimal %}{% else %}0.00{% endif %}"
                                    class="calculated-field tip-total-field"
                                    data-combo-id="{{ emp.combo_id }}"
                                    data-field-name="{{ req.field_name }}">
@@ -549,10 +537,10 @@
 const allEmployees = {{ all_employees | tojson }};
 const workingEmployeeIds = new Set({{ working_employee_ids | tojson }});
 
-function updateAddEmployeeDropdown() {
-    const select = document.getElementById('employee-to-add');
-    if (!select) {
-        console.log('Employee dropdown not found (likely in read-only mode)');
+function updateAddEmployeeCheckboxList() {
+    const checkboxList = document.getElementById('employee-checkbox-list');
+    if (!checkboxList) {
+        console.log('Employee checkbox list not found (likely in read-only mode)');
         return;
     }
 
@@ -562,9 +550,8 @@ function updateAddEmployeeDropdown() {
         currentComboIds.add(input.value);
     });
 
-    select.innerHTML = '<option value="">Select an employee...</option>';
+    checkboxList.innerHTML = '';
 
-    // Group employees by position
     const employeesByPosition = {};
     allEmployees.forEach(emp => {
         if (!currentComboIds.has(emp.combo_id)) {
@@ -575,46 +562,66 @@ function updateAddEmployeeDropdown() {
         }
     });
 
-    // Add employees grouped by position using optgroups
     const positionNames = Object.keys(employeesByPosition).sort();
     positionNames.forEach(positionName => {
-        const optgroup = document.createElement('optgroup');
-        optgroup.label = positionName;
+        const positionHeader = document.createElement('div');
+        positionHeader.style.cssText = 'font-weight: bold; color: #333; margin-top: 10px; margin-bottom: 5px; padding-bottom: 5px; border-bottom: 1px solid #ddd;';
+        positionHeader.textContent = positionName;
+        checkboxList.appendChild(positionHeader);
 
         employeesByPosition[positionName].forEach(emp => {
-            const option = document.createElement('option');
-            option.value = emp.combo_id;
-            option.textContent = emp.display_name;
-            option.dataset.employee = JSON.stringify(emp);
-            optgroup.appendChild(option);
-        });
+            const checkboxWrapper = document.createElement('label');
+            checkboxWrapper.style.cssText = 'display: flex; align-items: center; padding: 6px; cursor: pointer; user-select: none;';
+            checkboxWrapper.className = 'employee-checkbox-item';
 
-        select.appendChild(optgroup);
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.value = emp.combo_id;
+            checkbox.dataset.employee = JSON.stringify(emp);
+            checkbox.style.cssText = 'margin-right: 8px; width: 18px; height: 18px; cursor: pointer;';
+            checkbox.className = 'employee-checkbox';
+
+            const label = document.createElement('span');
+            label.textContent = emp.display_name;
+
+            checkboxWrapper.appendChild(checkbox);
+            checkboxWrapper.appendChild(label);
+            checkboxList.appendChild(checkboxWrapper);
+        });
     });
 }
 
 function toggleAddEmployeeModal() {
     const modal = document.getElementById('add-employee-modal');
     if (modal.style.display === 'none') {
-        updateAddEmployeeDropdown();
+        updateAddEmployeeCheckboxList();
         modal.style.display = 'block';
     } else {
         modal.style.display = 'none';
     }
 }
 
-function addSelectedEmployee() {
-    const select = document.getElementById('employee-to-add');
-    const selectedOption = select.options[select.selectedIndex];
+function selectAllEmployees(select) {
+    const checkboxes = document.querySelectorAll('.employee-checkbox');
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = select;
+    });
+}
 
-    if (!selectedOption.value) {
-        alert('Please select an employee');
+function addSelectedEmployees() {
+    const checkboxes = document.querySelectorAll('.employee-checkbox:checked');
+
+    if (checkboxes.length === 0) {
+        alert('Please select at least one employee');
         return;
     }
 
-    const employee = JSON.parse(selectedOption.dataset.employee);
-    addEmployeeEntry(employee);
-    toggleAddEmployeeModal();
+    checkboxes.forEach(checkbox => {
+        const employee = JSON.parse(checkbox.dataset.employee);
+        addEmployeeEntry(employee);
+    });
+
+    document.getElementById('add-employee-modal').style.display = 'none';
 }
 
 function addEmployeeEntry(emp) {
@@ -631,22 +638,7 @@ function addEmployeeEntry(emp) {
 
     let tipFields = '';
     emp.position.tip_requirements.forEach(req => {
-        if (req.record_data && req.no_input) {
-            tipFields += `
-                <div class="form-group">
-                    <label class="checkbox-label" style="display: flex; align-items: center; cursor: pointer; user-select: none;">
-                        <input type="checkbox"
-                               name="checkbox_${req.field_name}_${emp.combo_id}"
-                               class="checkbox-input"
-                               value="1"
-                               data-combo-id="${emp.combo_id}"
-                               data-field-name="${req.field_name}"
-                               style="margin-right: 8px; width: 18px; height: 18px; cursor: pointer;">
-                        <span style="font-weight: 500;">${req.name}</span>
-                    </label>
-                </div>
-            `;
-        } else if (!req.no_input || req.is_total) {
+        if (!req.no_input || req.is_total) {
             const requiredMark = req.no_null_value && !req.is_total ? ' <span style="color: #dc2626;">*</span>' : '';
             if (req.is_total) {
                 tipFields += `

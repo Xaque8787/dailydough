@@ -134,7 +134,6 @@ class DailyEmployeeEntry(Base):
     employee_id = Column(Integer, ForeignKey("employees.id"), nullable=True)
     position_id = Column(Integer, ForeignKey("positions.id"), nullable=True)
     tip_values = Column(JSON, default=dict)
-    selected_checkboxes = Column(JSON, default=list)
     employee_name_snapshot = Column(String, nullable=True)
     position_name_snapshot = Column(String, nullable=True)
 
@@ -146,11 +145,6 @@ class DailyEmployeeEntry(Base):
         if self.tip_values and isinstance(self.tip_values, dict):
             return self.tip_values.get(field_name, default)
         return default
-
-    def is_checkbox_selected(self, field_name: str) -> bool:
-        if self.selected_checkboxes and isinstance(self.selected_checkboxes, list):
-            return field_name in self.selected_checkboxes
-        return False
 
     @property
     def employee_display_name(self):

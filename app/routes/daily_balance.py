@@ -225,19 +225,11 @@ def save_daily_balance_data(
                             total += value
                 tip_values[req.field_name] = round(total, 2)
 
-        selected_checkboxes = []
-        for req in position.tip_requirements:
-            if req.record_data and req.no_input:
-                checkbox_key = f"checkbox_{req.field_name}_{combo}"
-                if form_data.get(checkbox_key) == "1":
-                    selected_checkboxes.append(req.field_name)
-
         entry = DailyEmployeeEntry(
             daily_balance_id=daily_balance.id,
             employee_id=emp_id,
             position_id=pos_id,
             tip_values=tip_values,
-            selected_checkboxes=selected_checkboxes,
             employee_name_snapshot=employee.display_name,
             position_name_snapshot=position.name
         )

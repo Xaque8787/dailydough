@@ -1,4 +1,4 @@
-# Calendar Scheduling & Checkbox Multi-Select Features
+# Calendar Scheduling & Employee Multi-Select Features
 
 This document describes two new features added to the application.
 
@@ -57,80 +57,90 @@ The daily balance form automatically populates with employees based on:
 - Recurring: Day name matches (e.g., "Monday")
 - Calendar: Exact date matches (e.g., "2026-03-15")
 
-## 2. Checkbox Multi-Select for Tip Requirements
+## 2. Employee Multi-Select with Checkboxes
 
 ### Overview
-Tip requirements that have `record_data=true` and `no_input=true` now render as checkboxes instead of text labels, allowing multi-select tracking per employee per day.
-
-### Database Changes
-- **Migration**: `2026_03_10_add_checkbox_multiselect.py`
-- **Table**: `daily_employee_entries`
-- **New Column**:
-  - `selected_checkboxes` (JSON): Array of field_name slugs
+When adding employees to the daily balance form, users can now select multiple employees at once using checkboxes instead of adding them one at a time from a dropdown.
 
 ### Use Cases
-- Attendance markers
-- Shift type indicators
-- Special conditions
-- Custom boolean attributes per employee
+- Quickly add multiple employees to a shift
+- Bulk-add entire positions
+- Save time when setting up daily entries
 
 ### How It Works
 
-**Configuration** (Tip Requirements setup):
-1. Create a tip requirement
-2. Set `record_data = true`
-3. Set `no_input = true`
-4. The requirement will render as a checkbox
+**Before**:
+- Click "Add Employee" button
+- Select one employee from dropdown
+- Click "Add"
+- Repeat for each employee
 
-**Rendering Logic**:
-```python
-if req.record_data and req.no_input:
-    # Render as checkbox
-elif not req.no_input:
-    # Render as numeric input
-else:
-    # Render as text label
-```
+**After**:
+- Click "Add Employee" button
+- Check multiple employees in the list
+- Use "Select All" / "Deselect All" for convenience
+- Click "Add Selected" to add all at once
 
 ### User Interface
 
-**Daily Balance Form**:
-- Checkboxes appear alongside numeric tip inputs
-- Each checkbox has employee's combo_id (employee_id-position_id)
-- Styled with larger size (18x18px) for easy clicking
-- Disabled when viewing finalized reports
+**Daily Balance Form** (`/daily-balance`):
+- "Add Employee" button opens modal
+- Modal displays checkbox list grouped by position
+- Select All / Deselect All buttons at top
+- "Add Selected" button adds all checked employees
+- Employees already added are filtered out from the list
 
-**Data Storage**:
-```json
-{
-  "selected_checkboxes": ["field_slug_1", "field_slug_2"]
+**Modal Features**:
+- Max height with scrolling for long employee lists
+- Position headers to organize employees
+- Large checkboxes (18x18px) for easy selection
+- Clear visual grouping by position
+
+### Frontend Logic
+
+**Updating Checkbox List** (`updateAddEmployeeCheckboxList()`):
+```javascript
+// Get currently added employees
+const currentComboIds = new Set();
+document.querySelectorAll('.employee-id-input').forEach(input => {
+    currentComboIds.add(input.value);
+});
+
+// Group available employees by position
+const employeesByPosition = {};
+allEmployees.forEach(emp => {
+    if (!currentComboIds.has(emp.combo_id)) {
+        if (!employeesByPosition[emp.position.name]) {
+            employeesByPosition[emp.position.name] = [];
+        }
+        employeesByPosition[emp.position.name].push(emp);
+    }
+});
+
+// Render checkboxes grouped by position
+```
+
+**Adding Selected Employees** (`addSelectedEmployees()`):
+```javascript
+const checkboxes = document.querySelectorAll('.employee-checkbox:checked');
+
+if (checkboxes.length === 0) {
+    alert('Please select at least one employee');
+    return;
 }
+
+checkboxes.forEach(checkbox => {
+    const employee = JSON.parse(checkbox.dataset.employee);
+    addEmployeeEntry(employee);
+});
 ```
 
-### Backend Logic
-
-**Saving Checkboxes** (`app/routes/daily_balance.py:save_daily_balance_data()`):
-```python
-selected_checkboxes = []
-for req in position.tip_requirements:
-    if req.record_data and req.no_input:
-        checkbox_key = f"checkbox_{req.field_name}_{combo}"
-        if form_data.get(checkbox_key) == "1":
-            selected_checkboxes.append(req.field_name)
-
-entry = DailyEmployeeEntry(
-    ...
-    selected_checkboxes=selected_checkboxes,
-    ...
-)
-```
-
-**Checking Selection** (`app/models.py:DailyEmployeeEntry.is_checkbox_selected()`):
-```python
-def is_checkbox_selected(self, field_name: str) -> bool:
-    if self.selected_checkboxes and isinstance(self.selected_checkboxes, list):
-        return field_name in self.selected_checkboxes
-    return False
+**Select All/Deselect All** (`selectAllEmployees(select)`):
+```javascript
+const checkboxes = document.querySelectorAll('.employee-checkbox');
+checkboxes.forEach(checkbox => {
+    checkbox.checked = select; // true or false
+});
 ```
 
 ## Migration Notes
@@ -174,15 +184,17 @@ Then restart the container or run migrations manually.
 - [ ] Add/remove calendar dates
 - [ ] Test with past, present, and future dates
 
-### Checkbox Multi-Select
-- [ ] Create tip requirement with record_data=true and no_input=true
-- [ ] Verify checkbox renders in daily balance form
-- [ ] Check/uncheck boxes for different employees
-- [ ] Save draft and verify checkboxes persist
-- [ ] Finalize report and verify checkboxes are saved
-- [ ] View finalized report - checkboxes should be disabled but show state
-- [ ] Edit finalized report - checkboxes should be editable
-- [ ] Add employee dynamically and verify checkbox appears
+### Employee Multi-Select
+- [ ] Open Add Employee modal
+- [ ] Verify employees are grouped by position
+- [ ] Check multiple employees from different positions
+- [ ] Use "Select All" button
+- [ ] Use "Deselect All" button
+- [ ] Click "Add Selected" - all checked employees should be added
+- [ ] Verify employees are sorted correctly (by position, then name)
+- [ ] Re-open modal - added employees should not appear in list
+- [ ] Add more employees - verify they integrate correctly
+- [ ] Test with finalized report (modal should not be accessible)
 
 ## Files Modified
 
@@ -194,8 +206,5 @@ Then restart the container or run migrations manually.
 - `app/templates/employees/form.html` (UI with date picker)
 - `app/templates/employees/list.html` (display calendar info)
 
-### Checkbox Multi-Select
-- `migrations/2026_03_10_add_checkbox_multiselect.py` (new)
-- `app/models.py` (DailyEmployeeEntry)
-- `app/routes/daily_balance.py` (save checkbox data)
-- `app/templates/daily_balance/form.html` (render checkboxes)
+### Employee Multi-Select
+- `app/templates/daily_balance/form.html` (modal UI and JavaScript)

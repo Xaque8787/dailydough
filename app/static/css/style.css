@@ -716,6 +716,15 @@ body {
     color: #2c3e50;
 }
 
+.employee-checkbox-item {
+    transition: background-color 0.15s ease;
+    border-radius: 4px;
+}
+
+.employee-checkbox-item:hover {
+    background-color: #f0f8ff;
+}
+
 .employee-add-select {
     flex: 1;
     min-width: 200px;
