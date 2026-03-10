@@ -25,6 +25,30 @@ templates.env.filters["format_decimal"] = format_decimal
 
 DAYS_OF_WEEK = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
 
+def is_employee_scheduled_for_date(schedule: EmployeePositionSchedule, target_date: date_cls, day_of_week: str) -> bool:
+    """
+    Check if an employee is scheduled for a specific date.
+
+    Args:
+        schedule: EmployeePositionSchedule object
+        target_date: The target date to check
+        day_of_week: Day name (e.g., 'Monday')
+
+    Returns:
+        True if employee is scheduled, False otherwise
+    """
+    schedule_type = schedule.schedule_type or 'recurring'
+
+    if schedule_type == 'recurring':
+        days_of_week = schedule.days_of_week or []
+        return day_of_week in days_of_week
+    elif schedule_type == 'calendar':
+        specific_dates = schedule.specific_dates or []
+        target_date_str = target_date.strftime('%Y-%m-%d')
+        return target_date_str in specific_dates
+
+    return False
+
 def save_daily_balance_data(
     db: Session,
     date_obj: date_cls,
@@ -432,7 +456,7 @@ async def daily_balance_page(
 
     scheduled_combos = []
     for schedule in all_schedules:
-        if day_of_week in schedule.days_of_week:
+        if is_employee_scheduled_for_date(schedule, target_date, day_of_week):
             scheduled_combos.append(serialize_employee_position_combo(schedule.employee, schedule.position, db))
 
     scheduled_combos = sorted(scheduled_combos, key=lambda combo: (combo["position_name_sort_key"], combo["display_name_sort_key"]))
@@ -567,7 +591,7 @@ async def save_daily_balance_route(
 
         scheduled_combos = []
         for schedule in all_schedules:
-            if day_of_week in schedule.days_of_week:
+            if is_employee_scheduled_for_date(schedule, date_obj, day_of_week):
                 scheduled_combos.append(serialize_employee_position_combo(schedule.employee, schedule.position, db))
 
         scheduled_combos = sorted(scheduled_combos, key=lambda combo: (combo["position_name_sort_key"], combo["display_name_sort_key"]))
@@ -679,7 +703,7 @@ async def finalize_daily_balance_route(
 
         scheduled_combos = []
         for schedule in all_schedules:
-            if day_of_week in schedule.days_of_week:
+            if is_employee_scheduled_for_date(schedule, date_obj, day_of_week):
                 scheduled_combos.append(serialize_employee_position_combo(schedule.employee, schedule.position, db))
 
         scheduled_combos = sorted(scheduled_combos, key=lambda combo: (combo["position_name_sort_key"], combo["display_name_sort_key"]))

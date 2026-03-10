@@ -64,20 +64,29 @@ let scheduleRows = [];
 function initSchedules() {
     if (existingSchedules.length > 0) {
         existingSchedules.forEach(schedule => {
-            addPositionRow(schedule.position_id, schedule.days_of_week || []);
+            addPositionRow(
+                schedule.position_id,
+                schedule.days_of_week || [],
+                schedule.schedule_type || 'recurring',
+                schedule.specific_dates || []
+            );
         });
     } else {
         addPositionRow();
     }
 }
 
-function addPositionRow(selectedPositionId = null, selectedDays = []) {
+function addPositionRow(selectedPositionId = null, selectedDays = [], scheduleType = 'recurring', specificDates = []) {
     const container = document.getElementById('position-schedules-container');
     const rowIndex = scheduleRows.length;
 
     const row = document.createElement('div');
     row.className = 'position-schedule-row';
-    row.style.cssText = 'display: flex; gap: 15px; margin-bottom: 15px; padding: 15px; border: 1px solid #ddd; border-radius: 4px; align-items: start;';
+    row.style.cssText = 'margin-bottom: 20px; padding: 15px; border: 1px solid #ddd; border-radius: 4px;';
+    row.dataset.scheduleType = scheduleType;
+
+    const topRow = document.createElement('div');
+    topRow.style.cssText = 'display: flex; gap: 15px; margin-bottom: 10px; align-items: start;';
 
     const positionSelect = document.createElement('select');
     positionSelect.className = 'position-select';
@@ -99,8 +108,59 @@ function addPositionRow(selectedPositionId = null, selectedDays = []) {
         positionSelect.appendChild(option);
     });
 
+    const scheduleTypeContainer = document.createElement('div');
+    scheduleTypeContainer.style.cssText = 'flex: 1;';
+
+    const scheduleTypeLabel = document.createElement('div');
+    scheduleTypeLabel.style.cssText = 'margin-bottom: 8px; font-weight: 500; font-size: 14px;';
+    scheduleTypeLabel.textContent = 'Schedule Type:';
+
+    const scheduleTypeButtons = document.createElement('div');
+    scheduleTypeButtons.style.cssText = 'display: flex; gap: 10px;';
+
+    const recurringRadio = document.createElement('label');
+    recurringRadio.className = 'checkbox-label';
+    recurringRadio.style.cssText = 'display: flex; align-items: center;';
+    const recurringInput = document.createElement('input');
+    recurringInput.type = 'radio';
+    recurringInput.name = `schedule-type-${rowIndex}`;
+    recurringInput.value = 'recurring';
+    recurringInput.checked = scheduleType === 'recurring';
+    recurringInput.className = 'schedule-type-radio';
+    recurringRadio.appendChild(recurringInput);
+    recurringRadio.appendChild(document.createTextNode('Recurring Days'));
+
+    const calendarRadio = document.createElement('label');
+    calendarRadio.className = 'checkbox-label';
+    calendarRadio.style.cssText = 'display: flex; align-items: center;';
+    const calendarInput = document.createElement('input');
+    calendarInput.type = 'radio';
+    calendarInput.name = `schedule-type-${rowIndex}`;
+    calendarInput.value = 'calendar';
+    calendarInput.checked = scheduleType === 'calendar';
+    calendarInput.className = 'schedule-type-radio';
+    calendarRadio.appendChild(calendarInput);
+    calendarRadio.appendChild(document.createTextNode('Specific Dates'));
+
+    scheduleTypeButtons.appendChild(recurringRadio);
+    scheduleTypeButtons.appendChild(calendarRadio);
+    scheduleTypeContainer.appendChild(scheduleTypeLabel);
+    scheduleTypeContainer.appendChild(scheduleTypeButtons);
+
+    const removeBtn = document.createElement('button');
+    removeBtn.type = 'button';
+    removeBtn.className = 'btn btn-danger';
+    removeBtn.textContent = '×';
+    removeBtn.style.cssText = 'flex: 0 0 40px; padding: 5px 10px;';
+    removeBtn.onclick = () => removePositionRow(row);
+
+    topRow.appendChild(positionSelect);
+    topRow.appendChild(scheduleTypeContainer);
+    topRow.appendChild(removeBtn);
+
     const daysContainer = document.createElement('div');
-    daysContainer.style.cssText = 'flex: 1; display: flex; gap: 10px; flex-wrap: wrap;';
+    daysContainer.className = 'recurring-schedule';
+    daysContainer.style.cssText = 'display: flex; gap: 10px; flex-wrap: wrap;';
 
     days.forEach(day => {
         const label = document.createElement('label');
@@ -118,21 +178,106 @@ function addPositionRow(selectedPositionId = null, selectedDays = []) {
         daysContainer.appendChild(label);
     });
 
-    const removeBtn = document.createElement('button');
-    removeBtn.type = 'button';
-    removeBtn.className = 'btn btn-danger';
-    removeBtn.textContent = '×';
-    removeBtn.style.cssText = 'flex: 0 0 40px; padding: 5px 10px;';
-    removeBtn.onclick = () => removePositionRow(row);
+    const calendarContainer = document.createElement('div');
+    calendarContainer.className = 'calendar-schedule';
+    calendarContainer.style.cssText = 'display: none;';
 
-    row.appendChild(positionSelect);
+    const calendarLabel = document.createElement('div');
+    calendarLabel.style.cssText = 'margin-bottom: 8px; font-size: 14px;';
+    calendarLabel.textContent = 'Select specific dates (click to add/remove):';
+
+    const dateInput = document.createElement('input');
+    dateInput.type = 'date';
+    dateInput.className = 'date-picker';
+    dateInput.style.cssText = 'margin-bottom: 10px; padding: 8px; border: 1px solid #ddd; border-radius: 4px;';
+
+    const addDateBtn = document.createElement('button');
+    addDateBtn.type = 'button';
+    addDateBtn.className = 'btn btn-sm btn-secondary';
+    addDateBtn.textContent = 'Add Date';
+    addDateBtn.style.cssText = 'margin-left: 10px;';
+
+    const selectedDatesContainer = document.createElement('div');
+    selectedDatesContainer.className = 'selected-dates';
+    selectedDatesContainer.style.cssText = 'display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px;';
+
+    specificDates.forEach(date => {
+        addDateChip(selectedDatesContainer, date);
+    });
+
+    addDateBtn.onclick = () => {
+        const dateValue = dateInput.value;
+        if (!dateValue) {
+            alert('Please select a date');
+            return;
+        }
+
+        const existingDates = Array.from(selectedDatesContainer.querySelectorAll('.date-chip')).map(chip => chip.dataset.date);
+        if (existingDates.includes(dateValue)) {
+            alert('This date is already added');
+            return;
+        }
+
+        addDateChip(selectedDatesContainer, dateValue);
+        dateInput.value = '';
+    };
+
+    calendarContainer.appendChild(calendarLabel);
+    const dateInputRow = document.createElement('div');
+    dateInputRow.appendChild(dateInput);
+    dateInputRow.appendChild(addDateBtn);
+    calendarContainer.appendChild(dateInputRow);
+    calendarContainer.appendChild(selectedDatesContainer);
+
+    recurringInput.addEventListener('change', () => {
+        if (recurringInput.checked) {
+            daysContainer.style.display = 'flex';
+            calendarContainer.style.display = 'none';
+            row.dataset.scheduleType = 'recurring';
+        }
+    });
+
+    calendarInput.addEventListener('change', () => {
+        if (calendarInput.checked) {
+            daysContainer.style.display = 'none';
+            calendarContainer.style.display = 'block';
+            row.dataset.scheduleType = 'calendar';
+        }
+    });
+
+    if (scheduleType === 'calendar') {
+        daysContainer.style.display = 'none';
+        calendarContainer.style.display = 'block';
+    }
+
+    row.appendChild(topRow);
     row.appendChild(daysContainer);
-    row.appendChild(removeBtn);
+    row.appendChild(calendarContainer);
 
     container.appendChild(row);
     scheduleRows.push(row);
 
     updateRemoveButtons();
+}
+
+function addDateChip(container, dateValue) {
+    const chip = document.createElement('div');
+    chip.className = 'date-chip';
+    chip.dataset.date = dateValue;
+    chip.style.cssText = 'background: #e3f2fd; padding: 6px 10px; border-radius: 16px; display: flex; align-items: center; gap: 6px; font-size: 14px;';
+
+    const dateText = document.createElement('span');
+    dateText.textContent = dateValue;
+
+    const removeBtn = document.createElement('button');
+    removeBtn.type = 'button';
+    removeBtn.textContent = '×';
+    removeBtn.style.cssText = 'background: none; border: none; color: #666; cursor: pointer; font-size: 18px; line-height: 1; padding: 0;';
+    removeBtn.onclick = () => chip.remove();
+
+    chip.appendChild(dateText);
+    chip.appendChild(removeBtn);
+    container.appendChild(chip);
 }
 
 function removePositionRow(row) {
@@ -174,12 +319,33 @@ function validateAndSerialize() {
         }
         positionIds.add(positionId);
 
-        const checkboxes = row.querySelectorAll('.day-checkbox:checked');
-        const selectedDays = Array.from(checkboxes).map(cb => cb.value);
+        const scheduleType = row.dataset.scheduleType || 'recurring';
+        let selectedDays = [];
+        let specificDates = [];
+
+        if (scheduleType === 'recurring') {
+            const checkboxes = row.querySelectorAll('.day-checkbox:checked');
+            selectedDays = Array.from(checkboxes).map(cb => cb.value);
+
+            if (selectedDays.length === 0) {
+                alert('Please select at least one day for recurring schedules, or switch to specific dates.');
+                return false;
+            }
+        } else if (scheduleType === 'calendar') {
+            const dateChips = row.querySelectorAll('.date-chip');
+            specificDates = Array.from(dateChips).map(chip => chip.dataset.date);
+
+            if (specificDates.length === 0) {
+                alert('Please add at least one specific date, or switch to recurring schedule.');
+                return false;
+            }
+        }
 
         schedulesData.push({
             position_id: positionId,
-            days_of_week: selectedDays
+            schedule_type: scheduleType,
+            days_of_week: selectedDays,
+            specific_dates: specificDates
         });
     }
 
