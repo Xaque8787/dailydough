@@ -456,6 +456,8 @@
                                    data-combo-id="{{ emp.combo_id }}"
                                    data-field-name="{{ req.field_name }}">
                             {% else %}
+                            {% set entry = employee_entries.get(emp.combo_id) %}
+                            {% set tip_val = entry.tip_values.get(req.field_name) if entry and entry.tip_values else None %}
                             <input type="number" step="0.01" name="tip_{{ req.field_name }}_{{ emp.combo_id }}"
                                    class="tip-input"
                                    data-combo-id="{{ emp.combo_id }}"
@@ -466,7 +468,7 @@
                                    data-revenue-is-deduction="{{ req.revenue_is_deduction|lower }}"
                                    data-apply-to-expense="{{ req.apply_to_expense|lower }}"
                                    data-expense-is-deduction="{{ req.expense_is_deduction|lower }}"
-                                   value="{% if employee_entries.get(emp.combo_id) and employee_entries.get(emp.combo_id).tip_values and employee_entries.get(emp.combo_id).tip_values.get(req.field_name) %}{{ employee_entries.get(emp.combo_id).tip_values.get(req.field_name)|format_decimal }}{% else %}0.00{% endif %}"
+                                   value="{{ tip_val|format_decimal if tip_val is not none else '0.00' }}"
                                    {% if daily_balance and daily_balance.finalized and not edit_mode %}readonly{% endif %}>
                             {% endif %}
                         </div>
