@@ -781,6 +781,7 @@ body {
 }
 
 .employee-checkbox-list {
+    display: block;
     max-height: 400px;
     overflow-y: auto;
     padding: 0.5rem 0;
@@ -813,6 +814,9 @@ body {
     border-bottom: 2px solid #dee2e6;
     font-size: 0.9375rem;
     letter-spacing: 0.3px;
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .employee-checkbox-item {
@@ -824,6 +828,8 @@ body {
     user-select: none;
     transition: background-color 0.15s ease;
     border-bottom: 1px solid #f0f0f0;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .employee-checkbox-item:hover {
