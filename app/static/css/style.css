@@ -745,8 +745,8 @@ body {
     border-radius: 8px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     z-index: 1000;
-    min-width: 300px;
-    max-width: 400px;
+    min-width: 350px;
+    width: 350px;
 }
 
 .dropdown-header {
