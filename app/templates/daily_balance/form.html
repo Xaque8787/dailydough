@@ -403,25 +403,25 @@
     <div class="form-section">
         <div class="section-header">
             <h3>Employee Entries</h3>
-            {% if not (daily_balance and daily_balance.finalized and not edit_mode) %}
-            <button type="button" class="btn btn-sm" onclick="toggleAddEmployeeModal()">
-                <span class="icon">+</span> Add Employee
-            </button>
-            {% endif %}
         </div>
 
         {% if not (daily_balance and daily_balance.finalized and not edit_mode) %}
-        <div id="add-employee-modal" class="add-employee-modal" style="display: none;">
-            <div class="modal-content-inline">
-                <h4>Add Employees</h4>
-                <div style="margin-bottom: 10px;">
-                    <button type="button" class="btn btn-sm" onclick="selectAllEmployees(true)" style="margin-right: 5px;">Select All</button>
-                    <button type="button" class="btn btn-sm" onclick="selectAllEmployees(false)">Deselect All</button>
+        <div class="employee-selector-dropdown" id="employee-selector-dropdown">
+            <button type="button" class="employee-selector-toggle" id="employee-selector-toggle" onclick="toggleEmployeeDropdown()">
+                <span class="icon">👥</span>
+                <span id="employee-count-badge">{{ working_employees|length }} selected</span>
+                <span class="dropdown-arrow">▼</span>
+            </button>
+            <div class="employee-dropdown-menu" id="employee-dropdown-menu" style="display: none;">
+                <div class="dropdown-header">
+                    <h4>Select Employees</h4>
+                    <div class="dropdown-actions">
+                        <button type="button" class="btn-link" onclick="selectAllEmployees(true)">Select All</button>
+                        <button type="button" class="btn-link" onclick="selectAllEmployees(false)">Clear All</button>
+                    </div>
                 </div>
-                <div id="employee-checkbox-list" style="max-height: 400px; overflow-y: auto; border: 1px solid #ddd; padding: 10px; border-radius: 4px; margin-bottom: 10px;">
+                <div id="employee-checkbox-list" class="employee-checkbox-list">
                 </div>
-                <button type="button" class="btn btn-primary btn-sm" onclick="addSelectedEmployees()">Add Selected</button>
-                <button type="button" class="btn btn-secondary btn-sm" onclick="toggleAddEmployeeModal()">Cancel</button>
             </div>
         </div>
         {% endif %}
@@ -551,7 +551,6 @@ function updateAddEmployeeCheckboxList() {
     }
 
     const currentComboIds = new Set();
-
     document.querySelectorAll('.employee-id-input').forEach(input => {
         currentComboIds.add(input.value);
     });
@@ -560,32 +559,34 @@ function updateAddEmployeeCheckboxList() {
 
     const employeesByPosition = {};
     allEmployees.forEach(emp => {
-        if (!currentComboIds.has(emp.combo_id)) {
-            if (!employeesByPosition[emp.position.name]) {
-                employeesByPosition[emp.position.name] = [];
-            }
-            employeesByPosition[emp.position.name].push(emp);
+        if (!employeesByPosition[emp.position.name]) {
+            employeesByPosition[emp.position.name] = [];
         }
+        employeesByPosition[emp.position.name].push(emp);
     });
 
     const positionNames = Object.keys(employeesByPosition).sort();
     positionNames.forEach(positionName => {
         const positionHeader = document.createElement('div');
-        positionHeader.style.cssText = 'font-weight: bold; color: #333; margin-top: 10px; margin-bottom: 5px; padding-bottom: 5px; border-bottom: 1px solid #ddd;';
+        positionHeader.className = 'employee-dropdown-position-header';
         positionHeader.textContent = positionName;
         checkboxList.appendChild(positionHeader);
 
         employeesByPosition[positionName].forEach(emp => {
+            const isChecked = currentComboIds.has(emp.combo_id);
+
             const checkboxWrapper = document.createElement('label');
-            checkboxWrapper.style.cssText = 'display: flex; align-items: center; padding: 6px; cursor: pointer; user-select: none;';
             checkboxWrapper.className = 'employee-checkbox-item';
 
             const checkbox = document.createElement('input');
             checkbox.type = 'checkbox';
             checkbox.value = emp.combo_id;
             checkbox.dataset.employee = JSON.stringify(emp);
-            checkbox.style.cssText = 'margin-right: 8px; width: 18px; height: 18px; cursor: pointer;';
             checkbox.className = 'employee-checkbox';
+            checkbox.checked = isChecked;
+            checkbox.onchange = function() {
+                handleEmployeeCheckboxChange(this);
+            };
 
             const label = document.createElement('span');
             label.textContent = emp.display_name;
@@ -595,39 +596,61 @@ function updateAddEmployeeCheckboxList() {
             checkboxList.appendChild(checkboxWrapper);
         });
     });
+
+    updateEmployeeCountBadge();
 }
 
-function toggleAddEmployeeModal() {
-    const modal = document.getElementById('add-employee-modal');
-    if (modal.style.display === 'none') {
+function toggleEmployeeDropdown() {
+    const dropdown = document.getElementById('employee-dropdown-menu');
+    if (dropdown.style.display === 'none') {
         updateAddEmployeeCheckboxList();
-        modal.style.display = 'block';
+        dropdown.style.display = 'block';
     } else {
-        modal.style.display = 'none';
+        dropdown.style.display = 'none';
     }
 }
+
+document.addEventListener('click', function(event) {
+    const dropdown = document.getElementById('employee-selector-dropdown');
+    const menu = document.getElementById('employee-dropdown-menu');
+    if (dropdown && menu && !dropdown.contains(event.target)) {
+        menu.style.display = 'none';
+    }
+});
 
 function selectAllEmployees(select) {
     const checkboxes = document.querySelectorAll('.employee-checkbox');
     checkboxes.forEach(checkbox => {
-        checkbox.checked = select;
+        if (checkbox.checked !== select) {
+            checkbox.checked = select;
+            handleEmployeeCheckboxChange(checkbox);
+        }
     });
 }
 
-function addSelectedEmployees() {
-    const checkboxes = document.querySelectorAll('.employee-checkbox:checked');
+function handleEmployeeCheckboxChange(checkbox) {
+    const employee = JSON.parse(checkbox.dataset.employee);
+    const comboId = employee.combo_id;
+    const existingEntry = document.getElementById(`entry-${comboId}`);
 
-    if (checkboxes.length === 0) {
-        alert('Please select at least one employee');
-        return;
+    if (checkbox.checked && !existingEntry) {
+        addEmployeeEntry(employee);
+    } else if (!checkbox.checked && existingEntry) {
+        existingEntry.remove();
+        updatePositionHeaders();
+        updateEmployeeTipsInFinancialTables();
+        calculateFinancialTotals();
     }
 
-    checkboxes.forEach(checkbox => {
-        const employee = JSON.parse(checkbox.dataset.employee);
-        addEmployeeEntry(employee);
-    });
+    updateEmployeeCountBadge();
+}
 
-    document.getElementById('add-employee-modal').style.display = 'none';
+function updateEmployeeCountBadge() {
+    const count = document.querySelectorAll('.employee-checkbox:checked').length;
+    const badge = document.getElementById('employee-count-badge');
+    if (badge) {
+        badge.textContent = `${count} selected`;
+    }
 }
 
 function addEmployeeEntry(emp) {
@@ -764,6 +787,12 @@ function removeEmployee(comboId) {
             updatePositionHeaders();
             updateEmployeeTipsInFinancialTables();
             calculateFinancialTotals();
+
+            const checkbox = document.querySelector(`.employee-checkbox[value="${comboId}"]`);
+            if (checkbox) {
+                checkbox.checked = false;
+            }
+            updateEmployeeCountBadge();
         }
     }
 }
@@ -1945,7 +1974,7 @@ function setupComboboxDropdown(input, getDataSource) {
 
 document.addEventListener('DOMContentLoaded', function() {
     console.log('=== Page loaded, initializing ===');
-    updateAddEmployeeDropdown();
+    updateAddEmployeeCheckboxList();
 
     loadCheckPayees();
     loadEFTCardNumbers();

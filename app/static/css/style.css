@@ -695,43 +695,169 @@ body {
     font-weight: bold;
 }
 
-.add-employee-modal {
-    background: #fff;
-    border: 2px solid #3498db;
-    border-radius: 8px;
-    padding: 1rem;
+.employee-selector-dropdown {
+    position: relative;
+    display: inline-block;
     margin-bottom: 1rem;
 }
 
-.modal-content-inline {
+.employee-selector-toggle {
     display: flex;
-    gap: 0.5rem;
     align-items: center;
-    flex-wrap: wrap;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    background: #fff;
+    border: 2px solid #3498db;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 1rem;
+    font-weight: 500;
+    color: #2c3e50;
+    transition: all 0.2s ease;
 }
 
-.modal-content-inline h4 {
-    width: 100%;
-    margin: 0 0 0.5rem 0;
+.employee-selector-toggle:hover {
+    background: #f0f8ff;
+    border-color: #2980b9;
+}
+
+#employee-count-badge {
+    background: #3498db;
+    color: white;
+    padding: 0.25rem 0.5rem;
+    border-radius: 12px;
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+.dropdown-arrow {
+    font-size: 0.75rem;
+    color: #666;
+}
+
+.employee-dropdown-menu {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    margin-top: 0.5rem;
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    z-index: 1000;
+    min-width: 300px;
+    max-width: 400px;
+}
+
+.dropdown-header {
+    padding: 1rem;
+    border-bottom: 1px solid #eee;
+}
+
+.dropdown-header h4 {
+    margin: 0 0 0.75rem 0;
     color: #2c3e50;
+    font-size: 1.125rem;
+}
+
+.dropdown-actions {
+    display: flex;
+    gap: 1rem;
+}
+
+.btn-link {
+    background: none;
+    border: none;
+    color: #3498db;
+    cursor: pointer;
+    font-size: 0.875rem;
+    padding: 0;
+    text-decoration: underline;
+    transition: color 0.2s ease;
+}
+
+.btn-link:hover {
+    color: #2980b9;
+}
+
+.employee-checkbox-list {
+    max-height: 400px;
+    overflow-y: auto;
+    padding: 0.5rem 0;
+}
+
+.employee-checkbox-list::-webkit-scrollbar {
+    width: 8px;
+}
+
+.employee-checkbox-list::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+.employee-checkbox-list::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 4px;
+}
+
+.employee-checkbox-list::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+.employee-dropdown-position-header {
+    font-weight: 600;
+    color: #2c3e50;
+    padding: 0.75rem 1rem;
+    margin-top: 0.5rem;
+    background: #f8f9fa;
+    border-bottom: 2px solid #dee2e6;
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
 .employee-checkbox-item {
+    display: flex;
+    align-items: center;
+    padding: 0.625rem 1rem;
+    cursor: pointer;
+    user-select: none;
     transition: background-color 0.15s ease;
-    border-radius: 4px;
 }
 
 .employee-checkbox-item:hover {
     background-color: #f0f8ff;
 }
 
-.employee-add-select {
-    flex: 1;
-    min-width: 200px;
-    padding: 0.5rem;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    font-size: 1rem;
+.employee-checkbox-item input[type="checkbox"] {
+    margin-right: 0.75rem;
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    accent-color: #3498db;
+}
+
+.employee-checkbox-item span {
+    font-size: 0.9375rem;
+    color: #2c3e50;
+}
+
+@media (max-width: 768px) {
+    .employee-dropdown-menu {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 90%;
+        max-width: 400px;
+        max-height: 80vh;
+    }
+
+    .employee-checkbox-list {
+        max-height: 50vh;
+    }
+}
+
 }
 
 .employee-add-select optgroup {
