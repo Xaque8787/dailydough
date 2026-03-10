@@ -443,7 +443,22 @@
 
                 <div class="form-row">
                     {% for req in emp.position.tip_requirements %}
-                        {% if not req.no_input or req.is_total %}
+                        {% if req.record_data and req.no_input %}
+                        <div class="form-group">
+                            <label class="checkbox-label" style="display: flex; align-items: center; cursor: pointer; user-select: none;">
+                                <input type="checkbox"
+                                       name="checkbox_{{ req.field_name }}_{{ emp.combo_id }}"
+                                       class="checkbox-input"
+                                       value="1"
+                                       data-combo-id="{{ emp.combo_id }}"
+                                       data-field-name="{{ req.field_name }}"
+                                       {% if employee_entries.get(emp.combo_id) and employee_entries.get(emp.combo_id).is_checkbox_selected(req.field_name) %}checked{% endif %}
+                                       {% if daily_balance and daily_balance.finalized and not edit_mode %}disabled{% endif %}
+                                       style="margin-right: 8px; width: 18px; height: 18px; cursor: pointer;">
+                                <span style="font-weight: 500;">{{ req.name }}</span>
+                            </label>
+                        </div>
+                        {% elif not req.no_input or req.is_total %}
                         <div class="form-group">
                             <label>{{ req.name }}{% if req.no_null_value and not req.is_total %} <span style="color: #dc2626;">*</span>{% endif %}</label>
                             {% if req.is_total %}
@@ -616,7 +631,22 @@ function addEmployeeEntry(emp) {
 
     let tipFields = '';
     emp.position.tip_requirements.forEach(req => {
-        if (!req.no_input || req.is_total) {
+        if (req.record_data && req.no_input) {
+            tipFields += `
+                <div class="form-group">
+                    <label class="checkbox-label" style="display: flex; align-items: center; cursor: pointer; user-select: none;">
+                        <input type="checkbox"
+                               name="checkbox_${req.field_name}_${emp.combo_id}"
+                               class="checkbox-input"
+                               value="1"
+                               data-combo-id="${emp.combo_id}"
+                               data-field-name="${req.field_name}"
+                               style="margin-right: 8px; width: 18px; height: 18px; cursor: pointer;">
+                        <span style="font-weight: 500;">${req.name}</span>
+                    </label>
+                </div>
+            `;
+        } else if (!req.no_input || req.is_total) {
             const requiredMark = req.no_null_value && !req.is_total ? ' <span style="color: #dc2626;">*</span>' : '';
             if (req.is_total) {
                 tipFields += `

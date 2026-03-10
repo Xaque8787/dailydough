@@ -43,10 +43,21 @@
                         {% for schedule in employee.position_schedules %}
                             <div style="margin-bottom: 5px;">
                                 <strong>{{ schedule.position.name }}:</strong>
-                                {% if schedule.days_of_week %}
-                                    {{ schedule.days_of_week|join(', ') }}
+                                {% if schedule.schedule_type == 'calendar' %}
+                                    {% if schedule.specific_dates %}
+                                        <span style="color: #0066cc;">📅 {{ schedule.specific_dates|length }} specific date(s)</span>
+                                        <div style="font-size: 12px; color: #666; margin-left: 20px;">
+                                            {{ schedule.specific_dates[:3]|join(', ') }}{% if schedule.specific_dates|length > 3 %}, ...{% endif %}
+                                        </div>
+                                    {% else %}
+                                        <em>No dates set</em>
+                                    {% endif %}
                                 {% else %}
-                                    <em>No schedule</em>
+                                    {% if schedule.days_of_week %}
+                                        {{ schedule.days_of_week|join(', ') }}
+                                    {% else %}
+                                        <em>No schedule</em>
+                                    {% endif %}
                                 {% endif %}
                             </div>
                         {% endfor %}
