@@ -67,6 +67,8 @@ class EmployeePositionSchedule(Base):
     employee_id = Column(Integer, ForeignKey("employees.id", ondelete="CASCADE"), nullable=False)
     position_id = Column(Integer, ForeignKey("positions.id", ondelete="RESTRICT"), nullable=False)
     days_of_week = Column(JSON, default=list)
+    schedule_type = Column(String, default='recurring')
+    specific_dates = Column(JSON, default=list)
 
     employee = relationship("Employee", back_populates="position_schedules")
     position = relationship("Position")

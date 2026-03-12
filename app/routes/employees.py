@@ -69,7 +69,9 @@ async def create_employee(
         new_schedule = EmployeePositionSchedule(
             employee_id=new_employee.id,
             position_id=schedule['position_id'],
-            days_of_week=schedule.get('days_of_week', [])
+            days_of_week=schedule.get('days_of_week', []),
+            schedule_type=schedule.get('schedule_type', 'recurring'),
+            specific_dates=schedule.get('specific_dates', [])
         )
         db.add(new_schedule)
 
@@ -109,7 +111,9 @@ async def edit_employee_page(
     employee_schedules = [
         {
             "position_id": schedule.position_id,
-            "days_of_week": schedule.days_of_week or []
+            "days_of_week": schedule.days_of_week or [],
+            "schedule_type": schedule.schedule_type or 'recurring',
+            "specific_dates": schedule.specific_dates or []
         }
         for schedule in employee.position_schedules
     ]
@@ -159,7 +163,9 @@ async def update_employee(
         new_schedule = EmployeePositionSchedule(
             employee_id=employee.id,
             position_id=schedule['position_id'],
-            days_of_week=schedule.get('days_of_week', [])
+            days_of_week=schedule.get('days_of_week', []),
+            schedule_type=schedule.get('schedule_type', 'recurring'),
+            specific_dates=schedule.get('specific_dates', [])
         )
         db.add(new_schedule)
 

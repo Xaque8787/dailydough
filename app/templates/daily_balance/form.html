@@ -144,7 +144,8 @@
                                 <input type="number" step="0.01"
                                        name="financial_item_{{ template.id }}"
                                        class="table1-field"
-                                       value="{% if financial_line_items.get('revenue_' + template.id|string) %}{{ financial_line_items.get('revenue_' + template.id|string).value|format_decimal }}{% else %}0.00{% endif %}"
+                                       {% set fin_item = financial_line_items.get('revenue_' + template.id|string) %}
+                                       value="{{ fin_item.value|format_decimal if fin_item else '0.00' }}"
                                        {% if daily_balance and daily_balance.finalized and not edit_mode %}readonly{% endif %}>
                             </td>
                         </tr>
@@ -235,7 +236,8 @@
                                 <input type="number" step="0.01"
                                        name="financial_item_{{ template.id }}"
                                        class="table2-field"
-                                       value="{% if financial_line_items.get('expense_' + template.id|string) %}{{ financial_line_items.get('expense_' + template.id|string).value|format_decimal }}{% else %}0.00{% endif %}"
+                                       {% set fin_item = financial_line_items.get('expense_' + template.id|string) %}
+                                       value="{{ fin_item.value|format_decimal if fin_item else '0.00' }}"
                                        {% if daily_balance and daily_balance.finalized and not edit_mode %}readonly{% endif %}>
                             </td>
                         </tr>
@@ -401,22 +403,26 @@
     <div class="form-section">
         <div class="section-header">
             <h3>Employee Entries</h3>
-            {% if not (daily_balance and daily_balance.finalized and not edit_mode) %}
-            <button type="button" class="btn btn-sm" onclick="toggleAddEmployeeModal()">
-                <span class="icon">+</span> Add Employee
-            </button>
-            {% endif %}
         </div>
 
         {% if not (daily_balance and daily_balance.finalized and not edit_mode) %}
-        <div id="add-employee-modal" class="add-employee-modal" style="display: none;">
-            <div class="modal-content-inline">
-                <h4>Add Employee</h4>
-                <select id="employee-to-add" class="employee-add-select">
-                    <option value="">Select an employee...</option>
-                </select>
-                <button type="button" class="btn btn-primary btn-sm" onclick="addSelectedEmployee()">Add</button>
-                <button type="button" class="btn btn-secondary btn-sm" onclick="toggleAddEmployeeModal()">Cancel</button>
+        <div class="employee-selector-dropdown" id="employee-selector-dropdown">
+            <button type="button" class="employee-selector-toggle" id="employee-selector-toggle" onclick="toggleEmployeeDropdown()">
+                <span class="icon">👥</span>
+                <span id="employee-count-badge">{{ working_employees|length }} selected</span>
+                <span class="dropdown-arrow">▼</span>
+            </button>
+            <div class="employee-dropdown-menu" id="employee-dropdown-menu" style="display: none;">
+                <div class="dropdown-header">
+                    <h4>Select Employees</h4>
+                    <div class="dropdown-actions">
+                        <button type="button" class="btn-link" onclick="selectAllEmployees(true)">Select All</button>
+                        <button type="button" class="btn-link" onclick="selectAllEmployees(false)">Clear All</button>
+                        <button type="button" class="btn-link" onclick="toggleEmployeeDropdown()">Close</button>
+                    </div>
+                </div>
+                <div id="employee-checkbox-list" class="employee-checkbox-list">
+                </div>
             </div>
         </div>
         {% endif %}
@@ -447,12 +453,16 @@
                         <div class="form-group">
                             <label>{{ req.name }}{% if req.no_null_value and not req.is_total %} <span style="color: #dc2626;">*</span>{% endif %}</label>
                             {% if req.is_total %}
+                            {% set entry = employee_entries.get(emp.combo_id) %}
+                            {% set tip_val = entry.tip_values.get(req.field_name) if entry and entry.tip_values else None %}
                             <input type="number" step="0.01" readonly
-                                   value="{% if employee_entries.get(emp.combo_id) and employee_entries.get(emp.combo_id).tip_values and employee_entries.get(emp.combo_id).tip_values.get(req.field_name) %}{{ employee_entries.get(emp.combo_id).tip_values.get(req.field_name)|format_decimal }}{% else %}0.00{% endif %}"
+                                   value="{{ tip_val|format_decimal if tip_val is not none else '0.00' }}"
                                    class="calculated-field tip-total-field"
                                    data-combo-id="{{ emp.combo_id }}"
                                    data-field-name="{{ req.field_name }}">
                             {% else %}
+                            {% set entry = employee_entries.get(emp.combo_id) %}
+                            {% set tip_val = entry.tip_values.get(req.field_name) if entry and entry.tip_values else None %}
                             <input type="number" step="0.01" name="tip_{{ req.field_name }}_{{ emp.combo_id }}"
                                    class="tip-input"
                                    data-combo-id="{{ emp.combo_id }}"
@@ -463,7 +473,7 @@
                                    data-revenue-is-deduction="{{ req.revenue_is_deduction|lower }}"
                                    data-apply-to-expense="{{ req.apply_to_expense|lower }}"
                                    data-expense-is-deduction="{{ req.expense_is_deduction|lower }}"
-                                   value="{% if employee_entries.get(emp.combo_id) and employee_entries.get(emp.combo_id).tip_values and employee_entries.get(emp.combo_id).tip_values.get(req.field_name) %}{{ employee_entries.get(emp.combo_id).tip_values.get(req.field_name)|format_decimal }}{% else %}0.00{% endif %}"
+                                   value="{{ tip_val|format_decimal if tip_val is not none else '0.00' }}"
                                    {% if daily_balance and daily_balance.finalized and not edit_mode %}readonly{% endif %}>
                             {% endif %}
                         </div>
@@ -534,72 +544,114 @@
 const allEmployees = {{ all_employees | tojson }};
 const workingEmployeeIds = new Set({{ working_employee_ids | tojson }});
 
-function updateAddEmployeeDropdown() {
-    const select = document.getElementById('employee-to-add');
-    if (!select) {
-        console.log('Employee dropdown not found (likely in read-only mode)');
+function updateAddEmployeeCheckboxList() {
+    const checkboxList = document.getElementById('employee-checkbox-list');
+    if (!checkboxList) {
+        console.log('Employee checkbox list not found (likely in read-only mode)');
         return;
     }
 
     const currentComboIds = new Set();
-
     document.querySelectorAll('.employee-id-input').forEach(input => {
         currentComboIds.add(input.value);
     });
 
-    select.innerHTML = '<option value="">Select an employee...</option>';
+    checkboxList.innerHTML = '';
 
-    // Group employees by position
     const employeesByPosition = {};
     allEmployees.forEach(emp => {
-        if (!currentComboIds.has(emp.combo_id)) {
-            if (!employeesByPosition[emp.position.name]) {
-                employeesByPosition[emp.position.name] = [];
-            }
-            employeesByPosition[emp.position.name].push(emp);
+        if (!employeesByPosition[emp.position.name]) {
+            employeesByPosition[emp.position.name] = [];
         }
+        employeesByPosition[emp.position.name].push(emp);
     });
 
-    // Add employees grouped by position using optgroups
     const positionNames = Object.keys(employeesByPosition).sort();
     positionNames.forEach(positionName => {
-        const optgroup = document.createElement('optgroup');
-        optgroup.label = positionName;
+        const positionHeader = document.createElement('div');
+        positionHeader.className = 'employee-dropdown-position-header';
+        positionHeader.textContent = positionName;
+        checkboxList.appendChild(positionHeader);
 
         employeesByPosition[positionName].forEach(emp => {
-            const option = document.createElement('option');
-            option.value = emp.combo_id;
-            option.textContent = emp.display_name;
-            option.dataset.employee = JSON.stringify(emp);
-            optgroup.appendChild(option);
-        });
+            const isChecked = currentComboIds.has(emp.combo_id);
 
-        select.appendChild(optgroup);
+            const checkboxWrapper = document.createElement('label');
+            checkboxWrapper.className = 'employee-checkbox-item';
+
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.value = emp.combo_id;
+            checkbox.dataset.employee = JSON.stringify(emp);
+            checkbox.className = 'employee-checkbox';
+            checkbox.checked = isChecked;
+            checkbox.onchange = function() {
+                handleEmployeeCheckboxChange(this);
+            };
+
+            const label = document.createElement('span');
+            label.textContent = emp.display_name;
+
+            checkboxWrapper.appendChild(checkbox);
+            checkboxWrapper.appendChild(label);
+            checkboxList.appendChild(checkboxWrapper);
+        });
+    });
+
+    updateEmployeeCountBadge();
+}
+
+function toggleEmployeeDropdown() {
+    const dropdown = document.getElementById('employee-dropdown-menu');
+    if (dropdown.style.display === 'none') {
+        updateAddEmployeeCheckboxList();
+        dropdown.style.display = 'block';
+    } else {
+        dropdown.style.display = 'none';
+    }
+}
+
+document.addEventListener('click', function(event) {
+    const dropdown = document.getElementById('employee-selector-dropdown');
+    const menu = document.getElementById('employee-dropdown-menu');
+    if (dropdown && menu && !dropdown.contains(event.target)) {
+        menu.style.display = 'none';
+    }
+});
+
+function selectAllEmployees(select) {
+    const checkboxes = document.querySelectorAll('.employee-checkbox');
+    checkboxes.forEach(checkbox => {
+        if (checkbox.checked !== select) {
+            checkbox.checked = select;
+            handleEmployeeCheckboxChange(checkbox);
+        }
     });
 }
 
-function toggleAddEmployeeModal() {
-    const modal = document.getElementById('add-employee-modal');
-    if (modal.style.display === 'none') {
-        updateAddEmployeeDropdown();
-        modal.style.display = 'block';
-    } else {
-        modal.style.display = 'none';
+function handleEmployeeCheckboxChange(checkbox) {
+    const employee = JSON.parse(checkbox.dataset.employee);
+    const comboId = employee.combo_id;
+    const existingEntry = document.getElementById(`entry-${comboId}`);
+
+    if (checkbox.checked && !existingEntry) {
+        addEmployeeEntry(employee);
+    } else if (!checkbox.checked && existingEntry) {
+        existingEntry.remove();
+        updatePositionHeaders();
+        updateEmployeeTipsInFinancialTables();
+        calculateFinancialTotals();
     }
+
+    updateEmployeeCountBadge();
 }
 
-function addSelectedEmployee() {
-    const select = document.getElementById('employee-to-add');
-    const selectedOption = select.options[select.selectedIndex];
-
-    if (!selectedOption.value) {
-        alert('Please select an employee');
-        return;
+function updateEmployeeCountBadge() {
+    const count = document.querySelectorAll('.employee-checkbox:checked').length;
+    const badge = document.getElementById('employee-count-badge');
+    if (badge) {
+        badge.textContent = `${count} selected`;
     }
-
-    const employee = JSON.parse(selectedOption.dataset.employee);
-    addEmployeeEntry(employee);
-    toggleAddEmployeeModal();
 }
 
 function addEmployeeEntry(emp) {
@@ -736,6 +788,12 @@ function removeEmployee(comboId) {
             updatePositionHeaders();
             updateEmployeeTipsInFinancialTables();
             calculateFinancialTotals();
+
+            const checkbox = document.querySelector(`.employee-checkbox[value="${comboId}"]`);
+            if (checkbox) {
+                checkbox.checked = false;
+            }
+            updateEmployeeCountBadge();
         }
     }
 }
@@ -1917,7 +1975,7 @@ function setupComboboxDropdown(input, getDataSource) {
 
 document.addEventListener('DOMContentLoaded', function() {
     console.log('=== Page loaded, initializing ===');
-    updateAddEmployeeDropdown();
+    updateAddEmployeeCheckboxList();
 
     loadCheckPayees();
     loadEFTCardNumbers();
