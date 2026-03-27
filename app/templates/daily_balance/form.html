@@ -328,26 +328,26 @@
                 <div class="form-row">
                     <div class="form-group">
                         <label>Date</label>
-                        <input type="date" name="check_date_{{ loop.index }}" value="{{ check.date }}" {% if daily_balance and daily_balance.finalized and not edit_mode %}readonly{% endif %}>
+                        <input type="date" name="check_date_{{ loop.index }}" value="{{ check.date }}" {% if daily_balance and daily_balance.finalized and not edit_mode %}readonly{% endif %} onfocus="this.select()">
                     </div>
                     <div class="form-group">
                         <label>Check Number</label>
-                        <input type="text" name="check_number_{{ loop.index }}" value="{{ check.check_number or '' }}" {% if daily_balance and daily_balance.finalized and not edit_mode %}readonly{% endif %}>
+                        <input type="text" name="check_number_{{ loop.index }}" value="{{ check.check_number or '' }}" {% if daily_balance and daily_balance.finalized and not edit_mode %}readonly{% endif %} onfocus="this.select()">
                     </div>
                     <div class="form-group">
                         <label>Payable To</label>
                         <div class="combobox-wrapper">
-                            <input type="text" name="check_payable_to_{{ loop.index }}" class="check-payable-to-input combobox-input" list="check-payees-datalist" value="{{ check.payable_to }}" {% if daily_balance and daily_balance.finalized and not edit_mode %}readonly{% endif %} placeholder="Select or type...">
+                            <input type="text" name="check_payable_to_{{ loop.index }}" class="check-payable-to-input combobox-input" list="check-payees-datalist" value="{{ check.payable_to }}" {% if daily_balance and daily_balance.finalized and not edit_mode %}readonly{% endif %} placeholder="Select or type..." onfocus="this.select()">
                             <span class="combobox-arrow">▼</span>
                         </div>
                     </div>
                     <div class="form-group">
                         <label>Total</label>
-                        <input type="number" step="0.01" name="check_total_{{ loop.index }}" value="{{ check.total|format_decimal }}" {% if daily_balance and daily_balance.finalized and not edit_mode %}readonly{% endif %}>
+                        <input type="number" step="0.01" name="check_total_{{ loop.index }}" value="{{ check.total|format_decimal }}" {% if daily_balance and daily_balance.finalized and not edit_mode %}readonly{% endif %} onfocus="this.select()">
                     </div>
                     <div class="form-group" style="grid-column: span 2;">
                         <label>Memo</label>
-                        <input type="text" name="check_memo_{{ loop.index }}" value="{{ check.memo or '' }}" {% if daily_balance and daily_balance.finalized and not edit_mode %}readonly{% endif %}>
+                        <input type="text" name="check_memo_{{ loop.index }}" value="{{ check.memo or '' }}" {% if daily_balance and daily_balance.finalized and not edit_mode %}readonly{% endif %} onfocus="this.select()">
                     </div>
                 </div>
             </div>
@@ -366,29 +366,29 @@
                 <div class="form-row">
                     <div class="form-group">
                         <label>Date</label>
-                        <input type="date" name="eft_date_{{ loop.index }}" value="{{ eft.date }}" {% if daily_balance and daily_balance.finalized and not edit_mode %}readonly{% endif %}>
+                        <input type="date" name="eft_date_{{ loop.index }}" value="{{ eft.date }}" {% if daily_balance and daily_balance.finalized and not edit_mode %}readonly{% endif %} onfocus="this.select()">
                     </div>
                     <div class="form-group">
                         <label>Card Number</label>
                         <div class="combobox-wrapper">
-                            <input type="text" name="eft_card_number_{{ loop.index }}" class="eft-card-number-input combobox-input" list="eft-card-numbers-datalist" value="{{ eft.card_number or '' }}" {% if daily_balance and daily_balance.finalized and not edit_mode %}readonly{% endif %} placeholder="Select or type...">
+                            <input type="text" name="eft_card_number_{{ loop.index }}" class="eft-card-number-input combobox-input" list="eft-card-numbers-datalist" value="{{ eft.card_number or '' }}" {% if daily_balance and daily_balance.finalized and not edit_mode %}readonly{% endif %} placeholder="Select or type..." onfocus="this.select()">
                             <span class="combobox-arrow">▼</span>
                         </div>
                     </div>
                     <div class="form-group">
                         <label>Payable To</label>
                         <div class="combobox-wrapper">
-                            <input type="text" name="eft_payable_to_{{ loop.index }}" class="eft-payable-to-input combobox-input" list="eft-payees-datalist" value="{{ eft.payable_to }}" {% if daily_balance and daily_balance.finalized and not edit_mode %}readonly{% endif %} placeholder="Select or type...">
+                            <input type="text" name="eft_payable_to_{{ loop.index }}" class="eft-payable-to-input combobox-input" list="eft-payees-datalist" value="{{ eft.payable_to }}" {% if daily_balance and daily_balance.finalized and not edit_mode %}readonly{% endif %} placeholder="Select or type..." onfocus="this.select()">
                             <span class="combobox-arrow">▼</span>
                         </div>
                     </div>
                     <div class="form-group">
                         <label>Total</label>
-                        <input type="number" step="0.01" name="eft_total_{{ loop.index }}" value="{{ eft.total|format_decimal }}" {% if daily_balance and daily_balance.finalized and not edit_mode %}readonly{% endif %}>
+                        <input type="number" step="0.01" name="eft_total_{{ loop.index }}" value="{{ eft.total|format_decimal }}" {% if daily_balance and daily_balance.finalized and not edit_mode %}readonly{% endif %} onfocus="this.select()">
                     </div>
                     <div class="form-group" style="grid-column: span 2;">
                         <label>Memo</label>
-                        <input type="text" name="eft_memo_{{ loop.index }}" value="{{ eft.memo or '' }}" {% if daily_balance and daily_balance.finalized and not edit_mode %}readonly{% endif %}>
+                        <input type="text" name="eft_memo_{{ loop.index }}" value="{{ eft.memo or '' }}" {% if daily_balance and daily_balance.finalized and not edit_mode %}readonly{% endif %} onfocus="this.select()">
                     </div>
                 </div>
             </div>
@@ -1786,26 +1786,26 @@ function addCheck() {
         <div class="form-row">
             <div class="form-group">
                 <label>Date</label>
-                <input type="date" name="check_date_${checkCounter}" value="${targetDate}">
+                <input type="date" name="check_date_${checkCounter}" value="${targetDate}" onfocus="this.select()">
             </div>
             <div class="form-group">
                 <label>Check Number</label>
-                <input type="text" name="check_number_${checkCounter}">
+                <input type="text" name="check_number_${checkCounter}" onfocus="this.select()">
             </div>
             <div class="form-group">
                 <label>Payable To</label>
                 <div class="combobox-wrapper">
-                    <input type="text" name="check_payable_to_${checkCounter}" class="check-payable-to-input combobox-input" list="check-payees-datalist" placeholder="Select or type...">
+                    <input type="text" name="check_payable_to_${checkCounter}" class="check-payable-to-input combobox-input" list="check-payees-datalist" placeholder="Select or type..." onfocus="this.select()">
                     <span class="combobox-arrow">▼</span>
                 </div>
             </div>
             <div class="form-group">
                 <label>Total</label>
-                <input type="number" step="0.01" name="check_total_${checkCounter}">
+                <input type="number" step="0.01" name="check_total_${checkCounter}" onfocus="this.select()">
             </div>
             <div class="form-group" style="grid-column: span 2;">
                 <label>Memo</label>
-                <input type="text" name="check_memo_${checkCounter}">
+                <input type="text" name="check_memo_${checkCounter}" onfocus="this.select()">
             </div>
         </div>
     `;
@@ -1845,29 +1845,29 @@ function addEFT() {
         <div class="form-row">
             <div class="form-group">
                 <label>Date</label>
-                <input type="date" name="eft_date_${eftCounter}" value="${targetDate}">
+                <input type="date" name="eft_date_${eftCounter}" value="${targetDate}" onfocus="this.select()">
             </div>
             <div class="form-group">
                 <label>Card Number</label>
                 <div class="combobox-wrapper">
-                    <input type="text" name="eft_card_number_${eftCounter}" class="eft-card-number-input combobox-input" list="eft-card-numbers-datalist" placeholder="Select or type...">
+                    <input type="text" name="eft_card_number_${eftCounter}" class="eft-card-number-input combobox-input" list="eft-card-numbers-datalist" placeholder="Select or type..." onfocus="this.select()">
                     <span class="combobox-arrow">▼</span>
                 </div>
             </div>
             <div class="form-group">
                 <label>Payable To</label>
                 <div class="combobox-wrapper">
-                    <input type="text" name="eft_payable_to_${eftCounter}" class="eft-payable-to-input combobox-input" list="eft-payees-datalist" placeholder="Select or type...">
+                    <input type="text" name="eft_payable_to_${eftCounter}" class="eft-payable-to-input combobox-input" list="eft-payees-datalist" placeholder="Select or type..." onfocus="this.select()">
                     <span class="combobox-arrow">▼</span>
                 </div>
             </div>
             <div class="form-group">
                 <label>Total</label>
-                <input type="number" step="0.01" name="eft_total_${eftCounter}">
+                <input type="number" step="0.01" name="eft_total_${eftCounter}" onfocus="this.select()">
             </div>
             <div class="form-group" style="grid-column: span 2;">
                 <label>Memo</label>
-                <input type="text" name="eft_memo_${eftCounter}">
+                <input type="text" name="eft_memo_${eftCounter}" onfocus="this.select()">
             </div>
         </div>
     `;
