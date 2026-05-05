@@ -14,6 +14,29 @@ from app.utils.csv_generator import generate_daily_balance_csv
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
 
+
+def get_previous_ending_till(db: Session, from_date) -> float:
+    """
+    Return the ending-till value from the most recent finalized day before from_date.
+    Uses a join so orphaned template_id references (deleted templates) are skipped
+    rather than silently returning 0.
+    """
+    from datetime import timedelta
+    previous_date = from_date - timedelta(days=1)
+    previous_daily_balance = db.query(DailyBalance).filter(DailyBalance.date == previous_date).first()
+    if not previous_daily_balance:
+        return 0.0
+    result = (
+        db.query(DailyFinancialLineItem)
+        .join(FinancialLineItemTemplate, DailyFinancialLineItem.template_id == FinancialLineItemTemplate.id)
+        .filter(
+            DailyFinancialLineItem.daily_balance_id == previous_daily_balance.id,
+            FinancialLineItemTemplate.is_ending_till == True
+        )
+        .first()
+    )
+    return result.value if result else 0.0
+
 def format_decimal(value, decimals=2):
     """Format a number to a fixed number of decimal places."""
     try:
@@ -497,20 +520,7 @@ async def daily_balance_page(
         for item in daily_balance.financial_line_items:
             financial_line_items[f"{item.category}_{item.template_id or item.id}"] = item
 
-    from datetime import timedelta
-    previous_date = target_date - timedelta(days=1)
-    previous_daily_balance = db.query(DailyBalance).filter(DailyBalance.date == previous_date).first()
-
-    previous_ending_till = 0.0
-    if previous_daily_balance:
-        for item in previous_daily_balance.financial_line_items:
-            if item.template_id:
-                template = db.query(FinancialLineItemTemplate).filter(
-                    FinancialLineItemTemplate.id == item.template_id
-                ).first()
-                if template and template.is_ending_till:
-                    previous_ending_till = item.value
-                    break
+    previous_ending_till = get_previous_ending_till(db, target_date)
 
     existing_checks = []
     existing_efts = []
@@ -633,20 +643,7 @@ async def save_daily_balance_route(
             for item in daily_balance.financial_line_items:
                 financial_line_items[f"{item.category}_{item.template_id or item.id}"] = item
 
-        from datetime import timedelta
-        previous_date = date_obj - timedelta(days=1)
-        previous_daily_balance = db.query(DailyBalance).filter(DailyBalance.date == previous_date).first()
-
-        previous_ending_till = 0.0
-        if previous_daily_balance:
-            for item in previous_daily_balance.financial_line_items:
-                if item.template_id:
-                    template = db.query(FinancialLineItemTemplate).filter(
-                        FinancialLineItemTemplate.id == item.template_id
-                    ).first()
-                    if template and template.is_ending_till:
-                        previous_ending_till = item.value
-                        break
+        previous_ending_till = get_previous_ending_till(db, date_obj)
 
         existing_checks = []
         existing_efts = []
@@ -745,20 +742,7 @@ async def finalize_daily_balance_route(
             for item in daily_balance.financial_line_items:
                 financial_line_items[f"{item.category}_{item.template_id or item.id}"] = item
 
-        from datetime import timedelta
-        previous_date = date_obj - timedelta(days=1)
-        previous_daily_balance = db.query(DailyBalance).filter(DailyBalance.date == previous_date).first()
-
-        previous_ending_till = 0.0
-        if previous_daily_balance:
-            for item in previous_daily_balance.financial_line_items:
-                if item.template_id:
-                    template = db.query(FinancialLineItemTemplate).filter(
-                        FinancialLineItemTemplate.id == item.template_id
-                    ).first()
-                    if template and template.is_ending_till:
-                        previous_ending_till = item.value
-                        break
+        previous_ending_till = get_previous_ending_till(db, date_obj)
 
         existing_checks = []
         existing_efts = []
