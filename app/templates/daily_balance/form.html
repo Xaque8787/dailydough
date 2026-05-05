@@ -113,6 +113,12 @@
                                 <input type="text" class="item-name-edit" id="name-edit-{{ template.id }}" value="{{ template.name }}" style="display: none;">
                                 {% if current_user.is_admin %}
                                 <span class="item-management-controls" style="display: none;">
+                                    <button type="button" class="btn-icon btn-reorder-small" onclick="moveFinancialItem({{ template.id }}, 'revenue', -1)" title="Move up">
+                                        <span class="icon">↑</span>
+                                    </button>
+                                    <button type="button" class="btn-icon btn-reorder-small" onclick="moveFinancialItem({{ template.id }}, 'revenue', 1)" title="Move down">
+                                        <span class="icon">↓</span>
+                                    </button>
                                     <button type="button" class="btn-icon btn-edit-small" onclick="startEditItemName({{ template.id }})" id="edit-btn-{{ template.id }}" title="Rename item">
                                         <span class="icon">✎</span>
                                     </button>
@@ -205,6 +211,12 @@
                                 <input type="text" class="item-name-edit" id="name-edit-{{ template.id }}" value="{{ template.name }}" style="display: none;">
                                 {% if current_user.is_admin %}
                                 <span class="item-management-controls" style="display: none;">
+                                    <button type="button" class="btn-icon btn-reorder-small" onclick="moveFinancialItem({{ template.id }}, 'expense', -1)" title="Move up">
+                                        <span class="icon">↑</span>
+                                    </button>
+                                    <button type="button" class="btn-icon btn-reorder-small" onclick="moveFinancialItem({{ template.id }}, 'expense', 1)" title="Move down">
+                                        <span class="icon">↓</span>
+                                    </button>
                                     <button type="button" class="btn-icon btn-edit-small" onclick="startEditItemName({{ template.id }})" id="edit-btn-{{ template.id }}" title="Rename item">
                                         <span class="icon">✎</span>
                                     </button>
@@ -1067,6 +1079,12 @@ async function addFinancialTemplate() {
                 </span>
                 <input type="text" class="item-name-edit" id="name-edit-${newTemplate.id}" value="${newTemplate.name}" style="display: none;">
                 <span class="item-management-controls" style="display: ${isManagementModeActive[currentManageCategory] ? 'inline' : 'none'};">
+                    <button type="button" class="btn-icon btn-reorder-small" onclick="moveFinancialItem(${newTemplate.id}, '${currentManageCategory}', -1)" title="Move up">
+                        <span class="icon">↑</span>
+                    </button>
+                    <button type="button" class="btn-icon btn-reorder-small" onclick="moveFinancialItem(${newTemplate.id}, '${currentManageCategory}', 1)" title="Move down">
+                        <span class="icon">↓</span>
+                    </button>
                     <button type="button" class="btn-icon btn-edit-small" onclick="startEditItemName(${newTemplate.id})" id="edit-btn-${newTemplate.id}" title="Rename item">
                         <span class="icon">✎</span>
                     </button>
@@ -1240,6 +1258,43 @@ async function deleteFinancialTemplate(templateId, category) {
     } catch (error) {
         console.error('Error deleting financial template:', error);
         alert(error.message || 'Failed to delete item. Please try again.');
+    }
+}
+
+async function moveFinancialItem(templateId, category, direction) {
+    const tableId = category === 'revenue' ? 'revenue-table' : 'expense-table';
+    const tbody = document.querySelector(`#${tableId} tbody`);
+    const rows = Array.from(tbody.querySelectorAll('tr[data-template-id]'));
+    const currentIndex = rows.findIndex(r => r.dataset.templateId == templateId);
+
+    const targetIndex = currentIndex + direction;
+    if (targetIndex < 0 || targetIndex >= rows.length) return;
+
+    const currentRow = rows[currentIndex];
+    const targetRow = rows[targetIndex];
+
+    if (direction === -1) {
+        tbody.insertBefore(currentRow, targetRow);
+    } else {
+        tbody.insertBefore(targetRow, currentRow);
+    }
+
+    const updatedRows = Array.from(tbody.querySelectorAll('tr[data-template-id]'));
+    const reorderPayload = updatedRows.map((row, index) => ({
+        id: parseInt(row.dataset.templateId),
+        display_order: index
+    }));
+
+    try {
+        const response = await fetch('/api/financial-items/templates/reorder', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(reorderPayload)
+        });
+        if (!response.ok) throw new Error('Failed to save order');
+    } catch (error) {
+        console.error('Error saving item order:', error);
+        alert('Failed to save new order. Please try again.');
     }
 }
 

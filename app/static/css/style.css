@@ -627,6 +627,23 @@ body {
     background-color: #fee;
 }
 
+.btn-reorder-small {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0.1rem 0.3rem;
+    border-radius: 3px;
+    transition: background-color 0.2s;
+    font-size: 1rem;
+    line-height: 1;
+    color: #666;
+    margin-left: 0.25rem;
+}
+
+.btn-reorder-small:hover {
+    background-color: #f0f0f0;
+}
+
 .btn-edit-small {
     background: none;
     border: none;
@@ -1214,6 +1231,7 @@ textarea[readonly] {
     }
 
     .btn-remove-small,
+    .btn-reorder-small,
     .btn-edit-small,
     .btn-save-small,
     .btn-cancel-small {
