@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from typing import List
 from app.database import get_db
-from app.models import User, FinancialLineItemTemplate
+from app.models import User, FinancialLineItemTemplate, DailyFinancialLineItem, DailyBalance
 from app.auth.jwt_handler import get_current_user
 
 router = APIRouter()
@@ -107,6 +107,41 @@ async def update_template(
 
     return {"success": True}
 
+@router.get("/api/financial-items/templates/{template_id}/delete-impact")
+async def get_delete_impact(
+    template_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    if not current_user.is_admin:
+        raise HTTPException(status_code=403, detail="Admin access required")
+
+    db_template = db.query(FinancialLineItemTemplate).filter(
+        FinancialLineItemTemplate.id == template_id
+    ).first()
+
+    if not db_template:
+        raise HTTPException(status_code=404, detail="Template not found")
+
+    affected_days = (
+        db.query(DailyFinancialLineItem)
+        .join(DailyBalance, DailyFinancialLineItem.daily_balance_id == DailyBalance.id)
+        .filter(
+            DailyFinancialLineItem.template_id == template_id,
+            DailyBalance.finalized == True
+        )
+        .count()
+    )
+
+    return {
+        "template_id": template_id,
+        "template_name": db_template.name,
+        "is_starting_till": db_template.is_starting_till,
+        "is_ending_till": db_template.is_ending_till,
+        "affected_finalized_days": affected_days
+    }
+
+
 @router.delete("/api/financial-items/templates/{template_id}")
 async def delete_template(
     template_id: int,
@@ -122,6 +157,12 @@ async def delete_template(
 
     if not db_template:
         raise HTTPException(status_code=404, detail="Template not found")
+
+    # Null out template_id on historical rows so they survive as orphaned records.
+    # The name, category, value, and snapshot flags are already stored on the row itself.
+    db.query(DailyFinancialLineItem).filter(
+        DailyFinancialLineItem.template_id == template_id
+    ).update({"template_id": None}, synchronize_session=False)
 
     db.delete(db_template)
     db.commit()

@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, Request, Form, HTTPException
-from fastapi.responses import RedirectResponse, HTMLResponse, FileResponse
+from fastapi.responses import RedirectResponse, HTMLResponse, FileResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 from app.database import get_db
@@ -8,6 +8,7 @@ from app.auth.jwt_handler import get_current_admin_user, get_password_hash
 from app.utils.slugify import create_slug, ensure_unique_slug
 from app.utils.backup import create_backup, list_backups, delete_backup, get_backup_path, restore_backup, get_backup_retention_count, cleanup_old_backups
 from app.utils.logging_config import get_log_files, read_log_file, get_log_stats, clear_log_file
+from app.utils.csv_generator import regenerate_all_daily_balance_reports
 
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
@@ -333,6 +334,15 @@ async def update_log_levels(
         return RedirectResponse(url="/admin/error-logs?levels_updated=true", status_code=302)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/admin/reports/regenerate-daily")
+async def regenerate_daily_reports(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_admin_user)
+):
+    result = regenerate_all_daily_balance_reports(db)
+    return JSONResponse(content=result)
+
 
 @router.post("/admin/logs/clear")
 async def clear_logs(

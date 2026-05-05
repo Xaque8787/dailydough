@@ -172,7 +172,7 @@ class FinancialLineItemTemplate(Base):
     is_starting_till = Column(Boolean, default=False)
     is_ending_till = Column(Boolean, default=False)
 
-    daily_line_items = relationship("DailyFinancialLineItem", back_populates="template", cascade="all, delete-orphan")
+    daily_line_items = relationship("DailyFinancialLineItem", back_populates="template", cascade="save-update, merge")
 
 class DailyFinancialLineItem(Base):
     __tablename__ = "daily_financial_line_items"
@@ -185,6 +185,8 @@ class DailyFinancialLineItem(Base):
     value = Column(Float, default=0.0)
     display_order = Column(Integer, default=0)
     is_employee_tip = Column(Boolean, default=False)
+    is_starting_till = Column(Boolean, default=False)
+    is_ending_till = Column(Boolean, default=False)
     employee_id = Column(Integer, ForeignKey("employees.id"), nullable=True)
     employee_name_snapshot = Column(String, nullable=True)
 

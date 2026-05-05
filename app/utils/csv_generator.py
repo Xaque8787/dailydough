@@ -150,6 +150,34 @@ def generate_daily_balance_csv(daily_balance: DailyBalance, employee_entries: Li
 
     return filepath
 
+def regenerate_all_daily_balance_reports(db: Session) -> dict:
+    """
+    Regenerate on-disk CSV files for every finalized daily balance.
+    Returns a summary dict: {"total": int, "success": int, "failed": int, "errors": list}
+    """
+    daily_balances = (
+        db.query(DailyBalance)
+        .filter(DailyBalance.finalized == True)
+        .order_by(DailyBalance.date)
+        .all()
+    )
+
+    total = len(daily_balances)
+    success = 0
+    failed = 0
+    errors = []
+
+    for daily_balance in daily_balances:
+        try:
+            generate_daily_balance_csv(daily_balance, daily_balance.employee_entries)
+            success += 1
+        except Exception as e:
+            failed += 1
+            errors.append({"date": str(daily_balance.date), "error": str(e)})
+
+    return {"total": total, "success": success, "failed": failed, "errors": errors}
+
+
 def generate_tip_report_csv(db: Session, start_date: date, end_date: date, current_user: Optional[User] = None, source: str = "user") -> str:
     # Use the first month of the date range for directory structure
     year = str(start_date.year)
