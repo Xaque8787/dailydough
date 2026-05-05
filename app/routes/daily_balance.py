@@ -17,9 +17,9 @@ templates = Jinja2Templates(directory="app/templates")
 
 def get_previous_ending_till(db: Session, from_date) -> float:
     """
-    Return the ending-till value from the most recent finalized day before from_date.
-    Uses a join so orphaned template_id references (deleted templates) are skipped
-    rather than silently returning 0.
+    Return the ending-till value from the day immediately before from_date.
+    Queries the snapshot flag on the line item itself so deleted templates
+    do not cause the value to silently return 0.
     """
     from datetime import timedelta
     previous_date = from_date - timedelta(days=1)
@@ -28,10 +28,9 @@ def get_previous_ending_till(db: Session, from_date) -> float:
         return 0.0
     result = (
         db.query(DailyFinancialLineItem)
-        .join(FinancialLineItemTemplate, DailyFinancialLineItem.template_id == FinancialLineItemTemplate.id)
         .filter(
             DailyFinancialLineItem.daily_balance_id == previous_daily_balance.id,
-            FinancialLineItemTemplate.is_ending_till == True
+            DailyFinancialLineItem.is_ending_till == True
         )
         .first()
     )
@@ -152,7 +151,9 @@ def save_daily_balance_data(
             category=template.category,
             value=value,
             display_order=template.display_order,
-            is_employee_tip=False
+            is_employee_tip=False,
+            is_starting_till=template.is_starting_till,
+            is_ending_till=template.is_ending_till
         )
         db.add(line_item)
 
