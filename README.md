@@ -1766,6 +1766,27 @@ docker-compose restart
 
 See [Database & Migrations → Troubleshooting Migrations](#troubleshooting-migrations) section above for detailed migration troubleshooting.
 
+### Regenerating Report Files After a Database Restore
+
+When you restore a database backup onto a different machine (or a fresh container), the database records are intact but the generated CSV report files in `data/reports/` do not carry over — they only exist on the original host. This means daily balance reports will show as missing when you try to view or download them.
+
+The admin endpoint `POST /admin/reports/regenerate-daily` re-generates all daily balance CSV files from the database records. Run it once after restoring and all historical reports will be rebuilt on disk.
+
+Because the application uses cookie-based authentication, the two-step curl workflow below first logs in to capture the session cookie, then calls the endpoint:
+
+```bash
+# Step 1: Log in and save the session cookie
+curl -s -c cookies.txt -X POST http://localhost:5710/login \
+  -d "username=YOUR_USERNAME&password=YOUR_PASSWORD"
+
+# Step 2: Regenerate all daily balance report files
+curl -s -b cookies.txt -X POST http://localhost:5710/admin/reports/regenerate-daily
+```
+
+Replace `YOUR_USERNAME` and `YOUR_PASSWORD` with your admin credentials. If the application is running behind a reverse proxy or on a non-default port, substitute the appropriate host and port.
+
+The endpoint requires an admin account. On success it returns a JSON summary of how many reports were generated. The CSV files are written to `data/reports/daily_report/YYYY/MM/` and are immediately available for download and email.
+
 ---
 
 ## Version Management
