@@ -1,5 +1,4 @@
 import os
-import shutil
 from datetime import datetime
 from typing import List, Dict, Optional
 import sqlite3
@@ -165,12 +164,10 @@ def get_backup_path(filename: str) -> str:
 
 def restore_backup(filename: str) -> bool:
     """
-    Restore database from a backup file.
-    This function will:
-    1. Validate the backup file exists
-    2. Copy the backup file to the database location
-
-    Important: All database connections must be closed before calling this function.
+    Restore database from a backup file using SQLite's online backup API.
+    Writes directly into the live database at the page level so the running
+    app sees the restored data immediately without a restart.
+    SQLite coordinates the WAL/SHM internally — no file swapping needed.
     """
     backups_dir = "data/backups"
     backup_filepath = os.path.join(backups_dir, filename)
@@ -187,17 +184,24 @@ def restore_backup(filename: str) -> bool:
     if not os.path.exists(DATABASE_PATH):
         raise FileNotFoundError("Current database file not found")
 
+    src_conn = None
+    dst_conn = None
+
     try:
-        conn = sqlite3.connect(backup_filepath)
-        cursor = conn.cursor()
+        src_conn = sqlite3.connect(backup_filepath)
+
+        cursor = src_conn.cursor()
         cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
         tables = cursor.fetchall()
-        conn.close()
-
         if not tables:
             raise ValueError("Backup file appears to be empty or corrupted")
 
-        shutil.copy2(backup_filepath, DATABASE_PATH)
+        dst_conn = sqlite3.connect(DATABASE_PATH)
+
+        # Atomically overwrite all pages in the live database using SQLite's
+        # backup API. SQLite coordinates the WAL so the app sees restored data
+        # on the very next query with no restart required.
+        src_conn.backup(dst_conn)
 
         return True
 
@@ -205,3 +209,8 @@ def restore_backup(filename: str) -> bool:
         raise ValueError(f"Backup file is not a valid SQLite database: {str(e)}")
     except Exception as e:
         raise Exception(f"Restore failed: {str(e)}")
+    finally:
+        if dst_conn:
+            dst_conn.close()
+        if src_conn:
+            src_conn.close()

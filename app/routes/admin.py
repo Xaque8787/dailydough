@@ -180,8 +180,6 @@ async def restore_database_backup(
     current_user: User = Depends(get_current_admin_user)
 ):
     try:
-        db.close()
-
         restore_backup(filename)
 
         return RedirectResponse(url="/admin?restored=true", status_code=302)
