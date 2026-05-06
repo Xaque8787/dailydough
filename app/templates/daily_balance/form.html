@@ -152,7 +152,7 @@
                                        class="table1-field"
                                        {% set fin_item = financial_line_items.get('revenue_' + template.id|string) %}
                                        value="{{ fin_item.value|format_decimal if fin_item else '0.00' }}"
-                                       {% if daily_balance and daily_balance.finalized and not edit_mode %}readonly{% endif %}>
+                                       {% if template.is_starting_till %}readonly data-starting-till="true"{% elif daily_balance and daily_balance.finalized and not edit_mode %}readonly{% endif %}>
                             </td>
                         </tr>
                             {% endif %}
@@ -250,7 +250,7 @@
                                        class="table2-field"
                                        {% set fin_item = financial_line_items.get('expense_' + template.id|string) %}
                                        value="{{ fin_item.value|format_decimal if fin_item else '0.00' }}"
-                                       {% if daily_balance and daily_balance.finalized and not edit_mode %}readonly{% endif %}>
+                                       {% if template.is_starting_till %}readonly data-starting-till="true"{% elif daily_balance and daily_balance.finalized and not edit_mode %}readonly{% endif %}>
                             </td>
                         </tr>
                             {% endif %}
@@ -2073,16 +2073,13 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     const previousEndingTill = parseFloat('{{ previous_ending_till }}') || 0;
-    const hasDailyBalance = {{ 'true' if daily_balance else 'false' }};
 
-    if (!hasDailyBalance && previousEndingTill > 0) {
-        document.querySelectorAll('#revenue-table tr[data-is-starting-till="true"], #expense-table tr[data-is-starting-till="true"]').forEach(row => {
-            const input = row.querySelector('input[type="number"]');
-            if (input) {
-                input.value = previousEndingTill.toFixed(2);
-            }
-        });
-    }
+    document.querySelectorAll('#revenue-table tr[data-is-starting-till="true"], #expense-table tr[data-is-starting-till="true"]').forEach(row => {
+        const input = row.querySelector('input[type="number"]');
+        if (input) {
+            input.value = previousEndingTill.toFixed(2);
+        }
+    });
 
     console.log('=== Calling calculateFinancialTotals on page load ===');
     calculateFinancialTotals();

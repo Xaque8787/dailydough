@@ -17,13 +17,16 @@ templates = Jinja2Templates(directory="app/templates")
 
 def get_previous_ending_till(db: Session, from_date) -> float:
     """
-    Return the ending-till value from the day immediately before from_date.
+    Return the ending-till value from the most recent finalized day before from_date.
     Queries the snapshot flag on the line item itself so deleted templates
     do not cause the value to silently return 0.
     """
-    from datetime import timedelta
-    previous_date = from_date - timedelta(days=1)
-    previous_daily_balance = db.query(DailyBalance).filter(DailyBalance.date == previous_date).first()
+    previous_daily_balance = (
+        db.query(DailyBalance)
+        .filter(DailyBalance.date < from_date, DailyBalance.finalized == True)
+        .order_by(DailyBalance.date.desc())
+        .first()
+    )
     if not previous_daily_balance:
         return 0.0
     result = (
@@ -126,23 +129,28 @@ def save_daily_balance_data(
         FinancialLineItemTemplate.display_order
     ).all()
 
+    previous_ending_till = get_previous_ending_till(db, date_obj)
+
     for template in financial_templates:
         value_key = f"financial_item_{template.id}"
         value_str = form_data.get(value_key)
 
-        if value_str is None or value_str == '' or value_str == 'null':
-            raise HTTPException(
-                status_code=400,
-                detail=f"Financial item '{template.name}' cannot be blank. Enter 0 if the value is zero."
-            )
+        if template.is_starting_till:
+            value = previous_ending_till
+        else:
+            if value_str is None or value_str == '' or value_str == 'null':
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Financial item '{template.name}' cannot be blank. Enter 0 if the value is zero."
+                )
 
-        try:
-            value = round(float(value_str), 2)
-        except (ValueError, TypeError):
-            raise HTTPException(
-                status_code=400,
-                detail=f"Financial item '{template.name}' must be a valid number."
-            )
+            try:
+                value = round(float(value_str), 2)
+            except (ValueError, TypeError):
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Financial item '{template.name}' must be a valid number."
+                )
 
         line_item = DailyFinancialLineItem(
             daily_balance_id=daily_balance.id,
