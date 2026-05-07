@@ -222,6 +222,7 @@ async def create_scheduled_task(
     bypass_opt_in = 1 if form_data.get("bypass_opt_in") == "1" else 0
     attach_csv = 1 if form_data.get("attach_csv") == "1" else 0
     employee_id = int(form_data.get("employee_id")) if form_data.get("employee_id") and form_data.get("employee_id").strip() else None
+    cloud_provider_id = int(form_data.get("cloud_provider_id")) if form_data.get("cloud_provider_id") and form_data.get("cloud_provider_id").strip() else None
 
     user_emails = form_data.getlist("user_emails[]")
     additional_email = form_data.get("additional_email", "").strip()
@@ -240,11 +241,13 @@ async def create_scheduled_task(
             INSERT INTO scheduled_tasks (
                 name, task_type, schedule_type, cron_expression,
                 interval_value, interval_unit, starts_at, date_range_type,
-                email_list, bypass_opt_in, is_active, next_run_at, employee_id, attach_csv
+                email_list, bypass_opt_in, is_active, next_run_at, employee_id, attach_csv,
+                cloud_provider_id
             ) VALUES (
                 :name, :task_type, :schedule_type, :cron_expression,
                 :interval_value, :interval_unit, :starts_at, :date_range_type,
-                :email_list, :bypass_opt_in, 1, :next_run_at, :employee_id, :attach_csv
+                :email_list, :bypass_opt_in, 1, :next_run_at, :employee_id, :attach_csv,
+                :cloud_provider_id
             )
         """), {
             "name": name,
@@ -259,7 +262,8 @@ async def create_scheduled_task(
             "bypass_opt_in": bypass_opt_in,
             "next_run_at": next_run_at,
             "employee_id": employee_id,
-            "attach_csv": attach_csv
+            "attach_csv": attach_csv,
+            "cloud_provider_id": cloud_provider_id
         })
         db.commit()
 
@@ -270,7 +274,8 @@ async def create_scheduled_task(
         add_job_to_scheduler(
             task_id, name, task_type, schedule_type,
             cron_expression, interval_value, interval_unit, starts_at,
-            date_range_type, email_list_json, bypass_opt_in, employee_id, attach_csv
+            date_range_type, email_list_json, bypass_opt_in, employee_id, attach_csv,
+            cloud_provider_id
         )
 
         job = scheduler.get_job(f"task_{task_id}")
@@ -331,7 +336,7 @@ async def toggle_scheduled_task(
             task_dict = db.execute(text("""
                 SELECT id, name, task_type, schedule_type, cron_expression,
                        interval_value, interval_unit, starts_at, date_range_type,
-                       email_list, bypass_opt_in, employee_id, attach_csv
+                       email_list, bypass_opt_in, employee_id, attach_csv, cloud_provider_id
                 FROM scheduled_tasks
                 WHERE id = :task_id
             """), {"task_id": task_id}).fetchone()
@@ -339,7 +344,8 @@ async def toggle_scheduled_task(
             add_job_to_scheduler(
                 task_dict[0], task_dict[1], task_dict[2], task_dict[3],
                 task_dict[4], task_dict[5], task_dict[6], task_dict[7],
-                task_dict[8], task_dict[9], task_dict[10], task_dict[11], task_dict[12]
+                task_dict[8], task_dict[9], task_dict[10], task_dict[11], task_dict[12],
+                task_dict[13]
             )
         else:
             if scheduler.get_job(job_id):
@@ -376,7 +382,8 @@ async def get_scheduled_task(
         task = db.execute(text("""
             SELECT id, name, task_type, schedule_type, cron_expression,
                    interval_value, interval_unit, starts_at, date_range_type,
-                   email_list, bypass_opt_in, is_active, employee_id, attach_csv
+                   email_list, bypass_opt_in, is_active, employee_id, attach_csv,
+                   cloud_provider_id
             FROM scheduled_tasks WHERE id = :task_id
         """), {"task_id": task_id}).fetchone()
 
@@ -406,7 +413,8 @@ async def get_scheduled_task(
                     "bypass_opt_in": task[10],
                     "is_active": task[11],
                     "employee_id": task[12],
-                    "attach_csv": task[13]
+                    "attach_csv": task[13],
+                    "cloud_provider_id": task[14]
                 }
             }
         )
@@ -443,6 +451,7 @@ async def update_scheduled_task(
         bypass_opt_in = 1 if form_data.get("bypass_opt_in") == "1" else 0
         attach_csv = 1 if form_data.get("attach_csv") == "1" else 0
         employee_id = int(form_data.get("employee_id")) if form_data.get("employee_id") and form_data.get("employee_id").strip() else None
+        cloud_provider_id = int(form_data.get("cloud_provider_id")) if form_data.get("cloud_provider_id") and form_data.get("cloud_provider_id").strip() else None
 
         # Validation
         if not name:
@@ -507,6 +516,7 @@ async def update_scheduled_task(
                 next_run_at = :next_run_at,
                 employee_id = :employee_id,
                 attach_csv = :attach_csv,
+                cloud_provider_id = :cloud_provider_id,
                 updated_at = CURRENT_TIMESTAMP
             WHERE id = :task_id
         """), {
@@ -523,6 +533,7 @@ async def update_scheduled_task(
             "next_run_at": next_run_at,
             "employee_id": employee_id,
             "attach_csv": attach_csv,
+            "cloud_provider_id": cloud_provider_id,
             "task_id": task_id
         })
         db.commit()
@@ -542,7 +553,8 @@ async def update_scheduled_task(
             add_job_to_scheduler(
                 task_id, name, task_type, schedule_type,
                 cron_expression, interval_value, interval_unit, starts_at,
-                date_range_type, email_list_json, bypass_opt_in, employee_id, attach_csv
+                date_range_type, email_list_json, bypass_opt_in, employee_id, attach_csv,
+                cloud_provider_id
             )
             print(f"  → Re-added scheduler job: {job_id}")
 
@@ -616,7 +628,8 @@ async def delete_scheduled_task(
 def add_job_to_scheduler(
     task_id, name, task_type, schedule_type,
     cron_expression, interval_value, interval_unit, starts_at,
-    date_range_type, email_list_json, bypass_opt_in, employee_id=None, attach_csv=False
+    date_range_type, email_list_json, bypass_opt_in, employee_id=None, attach_csv=False,
+    cloud_provider_id=None
 ):
     """Add a job to the APScheduler"""
     from apscheduler.triggers.cron import CronTrigger
@@ -645,7 +658,7 @@ def add_job_to_scheduler(
         job_args = [task_id, name]
     elif task_type == "cloud_backup":
         job_func = run_cloud_backup_task
-        job_args = [task_id, name, employee_id]  # employee_id column reused as provider_id for cloud_backup
+        job_args = [task_id, name, cloud_provider_id]
     else:
         raise ValueError(f"Unknown task type: {task_type}")
 
@@ -819,7 +832,7 @@ def load_scheduled_tasks():
         tasks = db.execute(text("""
             SELECT id, name, task_type, schedule_type, cron_expression,
                    interval_value, interval_unit, starts_at, date_range_type,
-                   email_list, bypass_opt_in, employee_id, attach_csv
+                   email_list, bypass_opt_in, employee_id, attach_csv, cloud_provider_id
             FROM scheduled_tasks WHERE is_active = 1
         """)).fetchall()
 
@@ -829,7 +842,7 @@ def load_scheduled_tasks():
                 add_job_to_scheduler(
                     task[0], task[1], task[2], task[3],
                     task[4], task[5], task[6], task[7],
-                    task[8], task[9], task[10], task[11], task[12]
+                    task[8], task[9], task[10], task[11], task[12], task[13]
                 )
                 loaded_count += 1
                 print(f"  ✓ Loaded task: {task[1]} (ID: {task[0]})")

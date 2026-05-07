@@ -225,7 +225,10 @@ class ScheduledTask(Base):
     starts_at = Column(DateTime, nullable=True)
     attach_csv = Column(Boolean, default=False)
 
+    cloud_provider_id = Column(Integer, ForeignKey("backup_providers.id"), nullable=True)
+
     employee = relationship("Employee")
+    cloud_provider = relationship("BackupProvider")
     executions = relationship("TaskExecution", back_populates="task", cascade="all, delete-orphan")
 
 class TaskExecution(Base):
