@@ -7,7 +7,7 @@ from sqlalchemy import text
 from sqlalchemy.exc import OperationalError
 import pytz
 from app.database import SessionLocal, DATABASE_DIR
-from app.models import User
+from app.models import User, BackupProvider
 from app.utils.csv_generator import generate_tip_report_csv, generate_consolidated_daily_balance_csv, generate_employee_tip_report_csv
 from app.utils.email import send_report_emails
 from app.scheduler import cleanup_old_executions
@@ -1023,5 +1023,167 @@ def run_backup_task(task_id, task_name):
             print(f"  → [FINALLY] Closing database connection...")
             db.close()
             print(f"  → [FINALLY] Database connection closed")
+        except Exception as close_error:
+            print(f"  ✗ [FINALLY] ERROR closing database: {close_error}")
+
+
+def run_cloud_backup_task(task_id, task_name, provider_id):
+    """
+    Run a cloud backup for a specific BackupProvider.
+
+    Args:
+        task_id: Scheduled task ID
+        task_name: Name of the task
+        provider_id: ID of the BackupProvider to use
+    """
+    from app.utils import rclone as rclone_util
+
+    db = SessionLocal()
+    execution_id = None
+
+    try:
+        print(f"▶️  Starting cloud backup task '{task_name}' (ID: {task_id})")
+
+        task_exists = db.execute(text("""
+            SELECT COUNT(*) FROM scheduled_tasks WHERE id = :task_id
+        """), {"task_id": task_id}).scalar()
+
+        if not task_exists:
+            raise Exception(f"Task ID {task_id} does not exist in scheduled_tasks table")
+
+        stale_count = db.execute(text("""
+            UPDATE task_executions
+            SET status = 'failed',
+                completed_at = CURRENT_TIMESTAMP,
+                error_message = 'Task execution marked as stale (exceeded timeout)'
+            WHERE task_id = :task_id
+              AND status = 'running'
+              AND started_at < datetime('now', '-5 minutes')
+        """), {"task_id": task_id}).rowcount
+
+        if stale_count > 0:
+            if not commit_with_retry(db):
+                print(f"  ⚠ Warning: Failed to commit stale execution cleanup")
+            else:
+                print(f"  → Cleaned up {stale_count} stale execution(s)")
+
+        result = db.execute(text("""
+            INSERT INTO task_executions (task_id, started_at, status)
+            VALUES (:task_id, datetime('now'), 'running')
+            RETURNING id
+        """), {"task_id": task_id})
+
+        execution_id = result.scalar()
+
+        if not commit_with_retry(db):
+            raise Exception("Failed to create task execution record")
+
+        if not execution_id or execution_id == 0:
+            raise Exception(f"Failed to get valid execution_id (got: {execution_id})")
+
+        print(f"  → Created execution record (ID: {execution_id})")
+
+        provider = db.query(BackupProvider).filter(BackupProvider.id == provider_id).first()
+        if not provider:
+            raise Exception(f"BackupProvider ID {provider_id} not found")
+        if not provider.is_active:
+            raise Exception(f"BackupProvider '{provider.name}' is inactive")
+
+        print(f"  → Running backup to provider '{provider.name}' ({provider.endpoint})")
+
+        backup_result = rclone_util.run_backup(provider)
+
+        if not backup_result["success"]:
+            raise Exception(backup_result["message"])
+
+        result_data = json.dumps({
+            "provider_id": provider_id,
+            "provider_name": provider.name,
+            "message": backup_result["message"],
+        })
+
+        time.sleep(0.05)
+
+        db.execute(text("""
+            UPDATE task_executions
+            SET completed_at = CURRENT_TIMESTAMP,
+                status = 'success',
+                result_data = :result_data
+            WHERE id = :execution_id
+        """), {"execution_id": execution_id, "result_data": result_data})
+
+        if not commit_with_retry(db):
+            raise Exception("Failed to update task execution status to success")
+
+        db.execute(text("SELECT 1")).fetchone()
+        time.sleep(0.1)
+
+        if not verify_execution_status(db, execution_id, 'success'):
+            raise Exception("Task execution status verification failed")
+
+        time.sleep(0.05)
+
+        task_info = db.execute(text("""
+            SELECT schedule_type, cron_expression, interval_value, interval_unit, starts_at
+            FROM scheduled_tasks
+            WHERE id = :task_id
+        """), {"task_id": task_id}).fetchone()
+
+        if task_info:
+            from app.scheduler import get_next_run_times
+            next_runs = get_next_run_times(
+                schedule_type=task_info[0],
+                cron_expression=task_info[1],
+                interval_value=task_info[2],
+                interval_unit=task_info[3],
+                starts_at=task_info[4],
+                count=1
+            )
+            next_run_at = next_runs[0].isoformat() if next_runs else None
+        else:
+            next_run_at = None
+
+        db.execute(text("""
+            UPDATE scheduled_tasks
+            SET last_run_at = CURRENT_TIMESTAMP,
+                next_run_at = :next_run_at
+            WHERE id = :task_id
+        """), {"task_id": task_id, "next_run_at": next_run_at})
+
+        if not commit_with_retry(db):
+            print(f"  ⚠ Warning: Failed to update scheduled task metadata for '{task_name}'")
+
+        cleanup_old_executions(task_id)
+
+        print(f"✓ Cloud backup task '{task_name}' completed successfully")
+
+    except Exception as e:
+        error_message = str(e)
+        print(f"✗ Cloud backup task '{task_name}' failed: {error_message}")
+
+        import traceback
+        traceback.print_exc()
+
+        if execution_id:
+            try:
+                time.sleep(0.05)
+                db.execute(text("""
+                    UPDATE task_executions
+                    SET completed_at = CURRENT_TIMESTAMP,
+                        status = 'failed',
+                        error_message = :error_message
+                    WHERE id = :execution_id
+                """), {"execution_id": execution_id, "error_message": error_message})
+
+                if commit_with_retry(db):
+                    print(f"  ✓ Marked execution {execution_id} as failed")
+                else:
+                    print(f"  ✗ WARNING: Could not mark execution {execution_id} as failed!")
+            except Exception as update_error:
+                print(f"  ✗ ERROR updating execution status: {update_error}")
+
+    finally:
+        try:
+            db.close()
         except Exception as close_error:
             print(f"  ✗ [FINALLY] ERROR closing database: {close_error}")

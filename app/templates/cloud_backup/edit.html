@@ -1,0 +1,181 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Provider - Cloud Backup{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h2>Edit Provider: {{ provider.name }}</h2>
+    <a href="/cloud-backup" class="btn btn-secondary">Back</a>
+</div>
+
+<div class="form-card">
+    <form method="POST" action="/cloud-backup/providers/{{ provider.id }}/update">
+
+        <div class="form-group">
+            <label>Preset</label>
+            <select id="presetSelect" class="form-control" onchange="applyPreset(this.value)">
+                <option value="">— Apply a preset —</option>
+                {% for key, preset in presets.items() %}
+                <option value="{{ key }}" data-endpoint="{{ preset.endpoint }}" data-region="{{ preset.region }}">{{ preset.label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="name">Provider Name <span class="required">*</span></label>
+            <input type="text" id="name" name="name" class="form-control" value="{{ provider.name }}" required>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label for="endpoint">Endpoint URL <span class="required">*</span></label>
+                <input type="url" id="endpoint" name="endpoint" class="form-control" value="{{ provider.endpoint }}" required>
+            </div>
+            <div class="form-group">
+                <label for="region">Region</label>
+                <input type="text" id="region" name="region" class="form-control" value="{{ provider.region or '' }}" placeholder="Leave empty for Backblaze B2">
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label for="bucket_name">Bucket Name <span class="required">*</span></label>
+                <input type="text" id="bucket_name" name="bucket_name" class="form-control" value="{{ provider.bucket_name }}" required>
+            </div>
+            <div class="form-group">
+                <label for="path_prefix">Path Prefix</label>
+                <input type="text" id="path_prefix" name="path_prefix" class="form-control" value="{{ provider.path_prefix }}">
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label for="access_key">Access Key ID</label>
+                <input type="password" id="access_key" name="access_key" class="form-control" autocomplete="off" placeholder="Leave blank to keep existing">
+            </div>
+            <div class="form-group">
+                <label for="secret_key">Secret Access Key</label>
+                <input type="password" id="secret_key" name="secret_key" class="form-control" autocomplete="off" placeholder="Leave blank to keep existing">
+            </div>
+        </div>
+
+        <div class="form-actions">
+            <div class="form-actions-inline">
+                <button type="button" class="btn btn-secondary" onclick="testConnection()">Test Connection</button>
+                <button type="button" class="btn btn-secondary" onclick="verifyBucket()">Verify Bucket</button>
+                <button type="button" class="btn btn-secondary" onclick="createBucket()">Create Bucket</button>
+                <span id="actionResult" class="test-result"></span>
+            </div>
+            <div>
+                <a href="/cloud-backup" class="btn btn-secondary">Cancel</a>
+                <button type="submit" class="btn btn-primary">Save Changes</button>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script>
+function applyPreset(key) {
+    const select = document.getElementById('presetSelect');
+    const option = select.options[select.selectedIndex];
+    if (!option || !option.value) return;
+    const endpoint = option.getAttribute('data-endpoint');
+    const region = option.getAttribute('data-region');
+    if (endpoint) document.getElementById('endpoint').value = endpoint;
+    if (region !== null) document.getElementById('region').value = region;
+}
+
+function setResult(msg, success) {
+    const el = document.getElementById('actionResult');
+    el.textContent = msg;
+    el.className = 'test-result ' + (success ? 'test-success' : 'test-error');
+}
+
+function testConnection() {
+    setResult('Testing...', true);
+    fetch('/cloud-backup/providers/{{ provider.id }}/test-connection', { method: 'POST' })
+        .then(r => r.json())
+        .then(data => setResult(data.success ? 'Connection successful.' : ('Failed: ' + data.message), data.success))
+        .catch(() => setResult('Request failed.', false));
+}
+
+function verifyBucket() {
+    setResult('Verifying...', true);
+    fetch('/cloud-backup/providers/{{ provider.id }}/verify-bucket', { method: 'POST' })
+        .then(r => r.json())
+        .then(data => setResult(data.success ? 'Bucket accessible.' : ('Error: ' + data.message), data.success))
+        .catch(() => setResult('Request failed.', false));
+}
+
+function createBucket() {
+    if (!confirm('Create bucket "{{ provider.bucket_name }}"?')) return;
+    setResult('Creating...', true);
+    fetch('/cloud-backup/providers/{{ provider.id }}/create-bucket', { method: 'POST' })
+        .then(r => r.json())
+        .then(data => setResult(data.success ? 'Bucket created.' : ('Error: ' + data.message), data.success))
+        .catch(() => setResult('Request failed.', false));
+}
+</script>
+
+<style>
+.form-card {
+    background: white;
+    border-radius: 8px;
+    padding: 2rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    max-width: 760px;
+}
+.form-group {
+    margin-bottom: 1.25rem;
+}
+.form-group label {
+    display: block;
+    margin-bottom: 0.4rem;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: #495057;
+}
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+.form-control {
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    box-sizing: border-box;
+}
+.form-control:focus {
+    outline: none;
+    border-color: #3498db;
+    box-shadow: 0 0 0 2px rgba(52,152,219,0.2);
+}
+.required {
+    color: #e74c3c;
+}
+.form-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 1.5rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid #dee2e6;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+.form-actions-inline {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+.test-result {
+    font-size: 0.875rem;
+}
+.test-success { color: #155724; }
+.test-error { color: #721c24; }
+</style>
+{% endblock %}

@@ -10,7 +10,7 @@ from app.database import get_db, SessionLocal
 from app.models import User, Employee
 from app.auth.jwt_handler import get_current_user
 from app.scheduler import scheduler, get_next_run_times
-from app.services.scheduler_tasks import run_tip_report_task, run_daily_balance_report_task, run_employee_tip_report_task, run_backup_task
+from app.services.scheduler_tasks import run_tip_report_task, run_daily_balance_report_task, run_employee_tip_report_task, run_backup_task, run_cloud_backup_task
 
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
@@ -216,7 +216,7 @@ async def create_scheduled_task(
     interval_value = int(form_data.get("interval_value", 0)) if schedule_type == "interval" else None
     interval_unit = form_data.get("interval_unit") if schedule_type == "interval" else None
     starts_at = form_data.get("starts_at", "").strip() if schedule_type == "interval" else None
-    date_range_type = form_data.get("date_range_type") if task_type not in ["backup"] else None
+    date_range_type = form_data.get("date_range_type") if task_type not in ["backup", "cloud_backup"] else None
     bypass_opt_in = 1 if form_data.get("bypass_opt_in") == "1" else 0
     attach_csv = 1 if form_data.get("attach_csv") == "1" else 0
     employee_id = int(form_data.get("employee_id")) if form_data.get("employee_id") and form_data.get("employee_id").strip() else None
@@ -437,7 +437,7 @@ async def update_scheduled_task(
         interval_value = int(form_data.get("interval_value", 0)) if schedule_type == "interval" else None
         interval_unit = form_data.get("interval_unit") if schedule_type == "interval" else None
         starts_at = form_data.get("starts_at", "").strip() if schedule_type == "interval" else None
-        date_range_type = form_data.get("date_range_type") if task_type not in ["backup"] else None
+        date_range_type = form_data.get("date_range_type") if task_type not in ["backup", "cloud_backup"] else None
         bypass_opt_in = 1 if form_data.get("bypass_opt_in") == "1" else 0
         attach_csv = 1 if form_data.get("attach_csv") == "1" else 0
         employee_id = int(form_data.get("employee_id")) if form_data.get("employee_id") and form_data.get("employee_id").strip() else None
@@ -641,6 +641,9 @@ def add_job_to_scheduler(
     elif task_type == "backup":
         job_func = run_backup_task
         job_args = [task_id, name]
+    elif task_type == "cloud_backup":
+        job_func = run_cloud_backup_task
+        job_args = [task_id, name, employee_id]  # employee_id column reused as provider_id for cloud_backup
     else:
         raise ValueError(f"Unknown task type: {task_type}")
 

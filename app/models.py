@@ -321,3 +321,19 @@ class ScheduledEFT(Base):
     memo = Column(Text, nullable=True)
     is_active = Column(Boolean, default=True)
     created_at = Column(String, nullable=True)
+
+class BackupProvider(Base):
+    __tablename__ = "backup_providers"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, nullable=False)
+    provider_type = Column(String, nullable=False, default="s3")
+    access_key_enc = Column(String, nullable=False)
+    secret_key_enc = Column(String, nullable=False)
+    endpoint = Column(String, nullable=False)
+    bucket_name = Column(String, nullable=False)
+    region = Column(String, nullable=True)
+    path_prefix = Column(String, nullable=False, default="db-backups/")
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, nullable=True)
+    updated_at = Column(DateTime, nullable=True)
