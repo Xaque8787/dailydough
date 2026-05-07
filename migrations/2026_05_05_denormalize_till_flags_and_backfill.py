@@ -44,6 +44,10 @@ MIGRATION_ID = "2026_05_05_denormalize_till_flags_and_backfill"
 def upgrade(conn, column_exists, table_exists):
     cursor = conn.cursor()
 
+    if not table_exists("daily_financial_line_items") or not table_exists("financial_line_item_templates"):
+        print("  ℹ️  required tables not yet present, skipping")
+        return
+
     # 1. Add is_starting_till snapshot column if missing
     if not column_exists("daily_financial_line_items", "is_starting_till"):
         cursor.execute("""

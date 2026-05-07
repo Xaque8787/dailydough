@@ -35,6 +35,12 @@ def upgrade(conn, column_exists, table_exists):
     if not fk_status:
         print("  ⚠ WARNING: Foreign keys could not be enabled!")
 
+    # Only clean up orphaned executions if both tables exist
+    if not table_exists("scheduled_tasks") or not table_exists("task_executions"):
+        print("  ℹ️  scheduler tables not yet present, skipping orphan cleanup")
+        print("  ✓ Migration completed successfully")
+        return
+
     # Check for orphaned executions
     print("  → Checking for orphaned task executions...")
     cursor.execute("""
@@ -45,7 +51,6 @@ def upgrade(conn, column_exists, table_exists):
     print(f"  → Found {orphaned_count} orphaned execution(s)")
 
     if orphaned_count > 0:
-        # Get details before deletion (limited to first 10)
         cursor.execute("""
             SELECT id, task_id, started_at, status
             FROM task_executions
@@ -62,8 +67,6 @@ def upgrade(conn, column_exists, table_exists):
         if orphaned_count > 10:
             print(f"    ... and {orphaned_count - 10} more")
 
-        # Delete orphaned executions
-        print("  → Deleting orphaned task executions...")
         cursor.execute("""
             DELETE FROM task_executions
             WHERE task_id NOT IN (SELECT id FROM scheduled_tasks)
@@ -72,7 +75,6 @@ def upgrade(conn, column_exists, table_exists):
     else:
         print("  ✓ No orphaned executions found")
 
-    # Show summary
     cursor.execute("SELECT COUNT(*) FROM scheduled_tasks")
     task_count = cursor.fetchone()[0]
 

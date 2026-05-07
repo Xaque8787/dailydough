@@ -71,5 +71,4 @@ def upgrade(conn, column_exists, table_exists):
     else:
         print("  ℹ️  specific_dates column already exists, skipping")
 
-    conn.commit()
     print("  ✅ Calendar scheduling migration completed successfully")
