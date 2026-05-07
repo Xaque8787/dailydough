@@ -15,15 +15,11 @@ fi
 echo "Ensuring data directory exists..."
 mkdir -p data
 
-# Check if database exists and initialize if needed
-if [ ! -f data/database.db ]; then
-    echo "Database not found. Initializing with current schema..."
-    python3 -c "from app.database import init_db; init_db(); print('Database initialized successfully!')"
-else
-    echo "Database exists."
-fi
+# Always initialize the database schema first (create_all is a no-op on existing tables)
+echo "Initializing database schema..."
+python3 -c "from app.database import init_db; init_db(); print('Schema initialized.')"
 
-# Always run migrations to apply any new updates
+# Always run migrations to apply any incremental changes
 echo ""
 echo "Checking for database migrations..."
 python3 run_migrations.py
