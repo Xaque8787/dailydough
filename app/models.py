@@ -91,7 +91,6 @@ class Employee(Base):
 
     @property
     def display_name(self):
-        """Return employee name in 'Last, First' format."""
         if self.last_name and self.first_name:
             return f"{self.last_name}, {self.first_name}"
         elif self.last_name:
@@ -148,14 +147,12 @@ class DailyEmployeeEntry(Base):
 
     @property
     def employee_display_name(self):
-        """Return employee name, preferring snapshot for deleted employees."""
         if self.employee:
             return self.employee.display_name
         return self.employee_name_snapshot or "Unknown Employee"
 
     @property
     def position_display_name(self):
-        """Return position name, preferring snapshot for deleted positions."""
         if self.position:
             return self.position.name
         return self.position_name_snapshot or "Unknown Position"
@@ -196,63 +193,9 @@ class DailyFinancialLineItem(Base):
 
     @property
     def employee_display_name(self):
-        """Return employee name, preferring snapshot for deleted employees."""
         if self.employee:
             return self.employee.display_name
         return self.employee_name_snapshot or "Unknown Employee"
-
-class ScheduledTask(Base):
-    __tablename__ = "scheduled_tasks"
-
-    id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, nullable=False)
-    task_type = Column(String, nullable=False)
-    schedule_type = Column(String, nullable=False)
-    cron_expression = Column(String, nullable=True)
-    interval_value = Column(Integer, nullable=True)
-    interval_unit = Column(String, nullable=True)
-    start_date = Column(String, nullable=True)
-    end_date = Column(String, nullable=True)
-    date_range_type = Column(String, nullable=True)
-    email_list = Column(String, nullable=True)
-    bypass_opt_in = Column(Boolean, default=False)
-    is_active = Column(Boolean, default=True)
-    created_at = Column(DateTime, nullable=True)
-    updated_at = Column(DateTime, nullable=True)
-    last_run_at = Column(DateTime, nullable=True)
-    next_run_at = Column(DateTime, nullable=True)
-    employee_id = Column(Integer, ForeignKey("employees.id"), nullable=True)
-    starts_at = Column(DateTime, nullable=True)
-    attach_csv = Column(Boolean, default=False)
-
-    cloud_provider_id = Column(Integer, ForeignKey("backup_providers.id"), nullable=True)
-
-    employee = relationship("Employee")
-    cloud_provider = relationship("BackupProvider")
-    executions = relationship("TaskExecution", back_populates="task", cascade="all, delete-orphan")
-
-class TaskExecution(Base):
-    __tablename__ = "task_executions"
-
-    id = Column(Integer, primary_key=True, index=True)
-    task_id = Column(Integer, ForeignKey("scheduled_tasks.id", ondelete="CASCADE"), nullable=False)
-    started_at = Column(DateTime, nullable=True)
-    completed_at = Column(DateTime, nullable=True)
-    status = Column(String, nullable=False)
-    error_message = Column(Text, nullable=True)
-    result_data = Column(Text, nullable=True)
-
-    task = relationship("ScheduledTask", back_populates="executions")
-
-class Setting(Base):
-    __tablename__ = "settings"
-
-    id = Column(Integer, primary_key=True, index=True)
-    key = Column(String, unique=True, nullable=False, index=True)
-    value = Column(String, nullable=False)
-    description = Column(Text, nullable=True)
-    created_at = Column(DateTime, nullable=True)
-    updated_at = Column(DateTime, nullable=True)
 
 class CheckPayee(Base):
     __tablename__ = "check_payees"
@@ -325,6 +268,17 @@ class ScheduledEFT(Base):
     is_active = Column(Boolean, default=True)
     created_at = Column(String, nullable=True)
 
+class Setting(Base):
+    __tablename__ = "settings"
+
+    id = Column(Integer, primary_key=True, index=True)
+    key = Column(String, unique=True, nullable=False, index=True)
+    value = Column(String, nullable=False)
+    description = Column(Text, nullable=True)
+    created_at = Column(DateTime, nullable=True)
+    updated_at = Column(DateTime, nullable=True)
+
+# BackupProvider must be defined before ScheduledTask so SQLAlchemy resolves the FK dependency correctly
 class BackupProvider(Base):
     __tablename__ = "backup_providers"
 
@@ -340,3 +294,45 @@ class BackupProvider(Base):
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, nullable=True)
     updated_at = Column(DateTime, nullable=True)
+
+class ScheduledTask(Base):
+    __tablename__ = "scheduled_tasks"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, nullable=False)
+    task_type = Column(String, nullable=False)
+    schedule_type = Column(String, nullable=False)
+    cron_expression = Column(String, nullable=True)
+    interval_value = Column(Integer, nullable=True)
+    interval_unit = Column(String, nullable=True)
+    start_date = Column(String, nullable=True)
+    end_date = Column(String, nullable=True)
+    date_range_type = Column(String, nullable=True)
+    email_list = Column(String, nullable=True)
+    bypass_opt_in = Column(Boolean, default=False)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, nullable=True)
+    updated_at = Column(DateTime, nullable=True)
+    last_run_at = Column(DateTime, nullable=True)
+    next_run_at = Column(DateTime, nullable=True)
+    employee_id = Column(Integer, ForeignKey("employees.id"), nullable=True)
+    starts_at = Column(DateTime, nullable=True)
+    attach_csv = Column(Boolean, default=False)
+    cloud_provider_id = Column(Integer, ForeignKey("backup_providers.id"), nullable=True)
+
+    employee = relationship("Employee")
+    cloud_provider = relationship("BackupProvider")
+    executions = relationship("TaskExecution", back_populates="task", cascade="all, delete-orphan")
+
+class TaskExecution(Base):
+    __tablename__ = "task_executions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    task_id = Column(Integer, ForeignKey("scheduled_tasks.id", ondelete="CASCADE"), nullable=False)
+    started_at = Column(DateTime, nullable=True)
+    completed_at = Column(DateTime, nullable=True)
+    status = Column(String, nullable=False)
+    error_message = Column(Text, nullable=True)
+    result_data = Column(Text, nullable=True)
+
+    task = relationship("ScheduledTask", back_populates="executions")
