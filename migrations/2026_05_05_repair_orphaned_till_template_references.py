@@ -30,6 +30,10 @@ MIGRATION_ID = "2026_05_05_repair_orphaned_till_template_references"
 def upgrade(conn, column_exists, table_exists):
     cursor = conn.cursor()
 
+    if not table_exists("daily_financial_line_items") or not table_exists("financial_line_item_templates"):
+        print("  ℹ️  required tables not yet present, skipping")
+        return
+
     # Find all line item rows whose template_id points to a missing template
     cursor.execute("""
         SELECT dfli.id, dfli.template_id, dfli.category, dfli.name
