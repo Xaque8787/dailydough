@@ -53,6 +53,7 @@ if (urlParams.get('deleted') === 'true') {
                     <button class="btn btn-small" onclick="testConnection({{ provider.id }}, this)">Test Auth</button>
                     <button class="btn btn-small" onclick="verifyBucket({{ provider.id }}, this)">Verify Bucket</button>
                     <button class="btn btn-small btn-warning" onclick="runBackup({{ provider.id }}, this)">Run Now</button>
+                    <button class="btn btn-small btn-info" onclick="openRestoreModal({{ provider.id }}, '{{ provider.name | e }}')">Restore</button>
                     <a href="/cloud-backup/providers/{{ provider.id }}" class="btn btn-small">Edit</a>
                     <form method="POST" action="/cloud-backup/providers/{{ provider.id }}/delete" style="display:inline">
                         <button type="submit" class="btn btn-small btn-danger" onclick="return confirm('Delete this provider?')">Delete</button>
@@ -151,6 +152,32 @@ if (urlParams.get('deleted') === 'true') {
 </div>
 
 <div id="actionResultToast" class="toast" style="display:none"></div>
+
+<!-- Restore from Cloud Modal -->
+<div id="restoreModal" class="modal-overlay" style="display:none">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Restore from Cloud: <span id="restoreProviderName"></span></h3>
+            <button class="modal-close" onclick="closeRestoreModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div id="restoreLoadingMsg" style="color:#6c757d; font-size:0.9rem;">Loading files from remote...</div>
+            <div id="restoreErrorMsg" style="display:none; color:#721c24; font-size:0.9rem;"></div>
+            <div id="restoreFileListWrap" style="display:none">
+                <p style="margin:0 0 0.75rem 0; font-size:0.875rem; color:#495057;">Select a backup file to restore. A safety backup of the current database will be created first.</p>
+                <div id="restoreFileList" class="restore-file-list"></div>
+            </div>
+            <div id="restoreConfirmWrap" style="display:none; margin-top:1rem; padding:0.75rem; background:#fff3cd; border:1px solid #ffc107; border-radius:4px;">
+                <p style="margin:0 0 0.5rem 0; font-size:0.875rem; font-weight:600; color:#856404;">Warning: This will overwrite the live database.</p>
+                <p style="margin:0; font-size:0.875rem; color:#856404;">Selected: <strong id="restoreSelectedFilename"></strong></p>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeRestoreModal()">Cancel</button>
+            <button id="restoreConfirmBtn" class="btn btn-danger" style="display:none" onclick="confirmRestore()">Restore Database</button>
+        </div>
+    </div>
+</div>
 
 <!-- Backup Result Modal -->
 <div id="backupResultModal" class="modal-overlay" style="display:none">
@@ -263,6 +290,104 @@ function runBackup(providerId, btn) {
         })
         .catch(() => showToast('Request failed.', false))
         .finally(() => { btn.textContent = orig; btn.disabled = false; });
+}
+
+let _restoreProviderId = null;
+let _restoreSelectedFile = null;
+
+function openRestoreModal(providerId, providerName) {
+    _restoreProviderId = providerId;
+    _restoreSelectedFile = null;
+    document.getElementById('restoreProviderName').textContent = providerName;
+    document.getElementById('restoreLoadingMsg').style.display = 'block';
+    document.getElementById('restoreErrorMsg').style.display = 'none';
+    document.getElementById('restoreFileListWrap').style.display = 'none';
+    document.getElementById('restoreConfirmWrap').style.display = 'none';
+    document.getElementById('restoreConfirmBtn').style.display = 'none';
+    document.getElementById('restoreModal').style.display = 'flex';
+
+    fetch('/cloud-backup/providers/' + providerId + '/list-files')
+        .then(r => r.json())
+        .then(data => {
+            document.getElementById('restoreLoadingMsg').style.display = 'none';
+            if (!data.success) {
+                const errEl = document.getElementById('restoreErrorMsg');
+                errEl.textContent = 'Failed to load files: ' + data.message;
+                errEl.style.display = 'block';
+                return;
+            }
+            if (data.files.length === 0) {
+                const errEl = document.getElementById('restoreErrorMsg');
+                errEl.textContent = 'No backup files found in this provider\'s path prefix.';
+                errEl.style.display = 'block';
+                return;
+            }
+            const listEl = document.getElementById('restoreFileList');
+            listEl.innerHTML = '';
+            data.files.forEach(function(file) {
+                const row = document.createElement('div');
+                row.className = 'restore-file-row';
+                row.setAttribute('data-filename', file.name);
+                const sizeKb = file.size > 0 ? (file.size / 1024).toFixed(1) + ' KB' : 'unknown size';
+                const modTime = file.mod_time ? new Date(file.mod_time).toLocaleString() : '';
+                row.innerHTML = '<span class="restore-file-name">' + escapeHtml(file.name) + '</span>' +
+                    '<span class="restore-file-meta">' + escapeHtml(sizeKb) + (modTime ? ' &nbsp;&middot;&nbsp; ' + escapeHtml(modTime) : '') + '</span>';
+                row.addEventListener('click', function() {
+                    document.querySelectorAll('.restore-file-row').forEach(r => r.classList.remove('selected'));
+                    row.classList.add('selected');
+                    _restoreSelectedFile = file.name;
+                    document.getElementById('restoreSelectedFilename').textContent = file.name;
+                    document.getElementById('restoreConfirmWrap').style.display = 'block';
+                    document.getElementById('restoreConfirmBtn').style.display = 'inline-block';
+                });
+                listEl.appendChild(row);
+            });
+            document.getElementById('restoreFileListWrap').style.display = 'block';
+        })
+        .catch(function() {
+            document.getElementById('restoreLoadingMsg').style.display = 'none';
+            const errEl = document.getElementById('restoreErrorMsg');
+            errEl.textContent = 'Request failed. Check your connection.';
+            errEl.style.display = 'block';
+        });
+}
+
+function closeRestoreModal() {
+    document.getElementById('restoreModal').style.display = 'none';
+    _restoreProviderId = null;
+    _restoreSelectedFile = null;
+}
+
+function confirmRestore() {
+    if (!_restoreSelectedFile || !_restoreProviderId) return;
+    if (!confirm('Restore the database from "' + _restoreSelectedFile + '"?\n\nA safety backup will be created first, then the live database will be overwritten.')) return;
+
+    const btn = document.getElementById('restoreConfirmBtn');
+    const origText = btn.textContent;
+    btn.textContent = 'Restoring...';
+    btn.disabled = true;
+
+    const formData = new FormData();
+    formData.append('filename', _restoreSelectedFile);
+
+    fetch('/cloud-backup/providers/' + _restoreProviderId + '/restore-from-cloud', { method: 'POST', body: formData })
+        .then(r => r.json())
+        .then(data => {
+            closeRestoreModal();
+            showToast(data.success ? 'Database restored successfully.' : ('Restore failed: ' + data.message), data.success);
+        })
+        .catch(function() {
+            closeRestoreModal();
+            showToast('Request failed.', false);
+        })
+        .finally(function() {
+            btn.textContent = origText;
+            btn.disabled = false;
+        });
+}
+
+function escapeHtml(str) {
+    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
 function showBackupResult(success, message, output) {
@@ -451,6 +576,51 @@ function showBackupResult(success, message, output) {
     border-bottom-color: #f5c6cb;
 }
 .modal-header-error h3 { color: #721c24; }
+.btn-info {
+    background: #17a2b8;
+    color: white;
+    border: none;
+}
+.btn-info:hover {
+    background: #138496;
+}
+.restore-file-list {
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    max-height: 260px;
+    overflow-y: auto;
+}
+.restore-file-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.6rem 0.85rem;
+    cursor: pointer;
+    border-bottom: 1px solid #f0f0f0;
+    transition: background 0.15s;
+}
+.restore-file-row:last-child {
+    border-bottom: none;
+}
+.restore-file-row:hover {
+    background: #f8f9fa;
+}
+.restore-file-row.selected {
+    background: #e3f2fd;
+    border-left: 3px solid #1976d2;
+}
+.restore-file-name {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #212529;
+    font-family: monospace;
+}
+.restore-file-meta {
+    font-size: 0.78rem;
+    color: #6c757d;
+    white-space: nowrap;
+    margin-left: 1rem;
+}
 .output-pre {
     background: #f8f9fa;
     border: 1px solid #dee2e6;

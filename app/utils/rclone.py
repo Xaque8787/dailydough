@@ -114,6 +114,80 @@ def create_bucket(provider) -> dict:
         return {"success": False, "message": str(e)}
 
 
+def list_remote_files(provider) -> dict:
+    """
+    List .db backup files in the provider's bucket/path_prefix.
+    Returns {"success": bool, "files": [...], "message": str}.
+    Each file: {"name": str, "size": int, "mod_time": str}.
+    """
+    import json as _json
+    try:
+        _validate_name(provider.bucket_name, "bucket_name")
+        _validate_name(provider.path_prefix, "path_prefix")
+        access_key = decrypt(provider.access_key_enc)
+        secret_key = decrypt(provider.secret_key_enc)
+        config = _build_rclone_config(access_key, secret_key, provider.endpoint, provider.region)
+
+        remote_path = f"remote:{provider.bucket_name}/{provider.path_prefix.rstrip('/')}"
+        returncode, stdout, stderr = _run_rclone(
+            ["lsjson", remote_path, "--no-modtime=false"],
+            config
+        )
+        if returncode != 0:
+            return {"success": False, "files": [], "message": stderr.strip() or "Failed to list files"}
+
+        entries = _json.loads(stdout or "[]")
+        files = []
+        for entry in entries:
+            if entry.get("IsDir"):
+                continue
+            name = entry.get("Name", "")
+            if not name.endswith(".db"):
+                continue
+            files.append({
+                "name": name,
+                "size": entry.get("Size", 0),
+                "mod_time": entry.get("ModTime", ""),
+            })
+
+        files.sort(key=lambda x: x["mod_time"], reverse=True)
+        return {"success": True, "files": files, "message": f"{len(files)} backup(s) found"}
+    except Exception as e:
+        return {"success": False, "files": [], "message": str(e)}
+
+
+def download_remote_file(provider, filename: str) -> dict:
+    """
+    Download a single .db file from the provider's bucket/path_prefix into data/backups/.
+    Returns {"success": bool, "message": str, "local_filename": str}.
+    """
+    try:
+        _validate_name(provider.bucket_name, "bucket_name")
+        _validate_name(provider.path_prefix, "path_prefix")
+        _validate_name(filename, "filename")
+
+        if not filename.endswith(".db"):
+            return {"success": False, "message": "Only .db files can be downloaded", "local_filename": ""}
+        if ".." in filename or "/" in filename:
+            return {"success": False, "message": "Invalid filename", "local_filename": ""}
+
+        access_key = decrypt(provider.access_key_enc)
+        secret_key = decrypt(provider.secret_key_enc)
+        config = _build_rclone_config(access_key, secret_key, provider.endpoint, provider.region)
+
+        remote_path = f"remote:{provider.bucket_name}/{provider.path_prefix.rstrip('/')}/{filename}"
+        returncode, stdout, stderr = _run_rclone(
+            ["copy", remote_path, BACKUP_SOURCE_DIR],
+            config
+        )
+        if returncode != 0:
+            return {"success": False, "message": stderr.strip() or "Download failed", "local_filename": ""}
+
+        return {"success": True, "message": "File downloaded successfully", "local_filename": filename}
+    except Exception as e:
+        return {"success": False, "message": str(e), "local_filename": ""}
+
+
 def run_backup(provider) -> dict:
     """
     Copy data/backups to the remote bucket under path_prefix.
