@@ -272,3 +272,49 @@ async def run_backup(
         return JSONResponse(status_code=400, content={"success": False, "message": "Provider is inactive"})
     result = rclone.run_backup(provider)
     return JSONResponse(content=result)
+
+
+@router.get("/cloud-backup/providers/{provider_id}/list-files")
+async def list_remote_files(
+    provider_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_admin_user)
+):
+    provider = db.query(BackupProvider).filter(BackupProvider.id == provider_id).first()
+    if not provider:
+        return JSONResponse(status_code=404, content={"success": False, "files": [], "message": "Provider not found"})
+    result = rclone.list_remote_files(provider)
+    return JSONResponse(content=result)
+
+
+@router.post("/cloud-backup/providers/{provider_id}/restore-from-cloud")
+async def restore_from_cloud(
+    provider_id: int,
+    filename: str = Form(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_admin_user)
+):
+    from app.utils.backup import create_backup, restore_backup
+
+    provider = db.query(BackupProvider).filter(BackupProvider.id == provider_id).first()
+    if not provider:
+        return JSONResponse(status_code=404, content={"success": False, "message": "Provider not found"})
+
+    if not filename.endswith(".db") or ".." in filename or "/" in filename:
+        return JSONResponse(status_code=400, content={"success": False, "message": "Invalid filename"})
+
+    try:
+        create_backup()
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"success": False, "message": f"Safety backup failed: {str(e)}"})
+
+    download_result = rclone.download_remote_file(provider, filename)
+    if not download_result["success"]:
+        return JSONResponse(status_code=500, content={"success": False, "message": f"Download failed: {download_result['message']}"})
+
+    try:
+        restore_backup(filename)
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"success": False, "message": f"Restore failed: {str(e)}"})
+
+    return JSONResponse(content={"success": True, "message": f"Database restored from {filename}"})
