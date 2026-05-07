@@ -11,14 +11,16 @@ RUN pip install --no-cache-dir --user -r /tmp/requirements.txt
 FROM python:3.11-slim AS production
 
 ARG RCLONE_VERSION=1.68.2
+ARG TARGETARCH
 
 RUN apt-get update && apt-get install -y \
     tzdata \
     curl \
     unzip \
-    && curl -fsSL "https://downloads.rclone.org/v${RCLONE_VERSION}/rclone-v${RCLONE_VERSION}-linux-amd64.zip" -o /tmp/rclone.zip \
+    && RCLONE_ARCH=$([ "$TARGETARCH" = "arm64" ] && echo "linux-arm64" || echo "linux-amd64") \
+    && curl -fsSL "https://downloads.rclone.org/v${RCLONE_VERSION}/rclone-v${RCLONE_VERSION}-${RCLONE_ARCH}.zip" -o /tmp/rclone.zip \
     && unzip /tmp/rclone.zip -d /tmp/rclone-dist \
-    && cp "/tmp/rclone-dist/rclone-v${RCLONE_VERSION}-linux-amd64/rclone" /usr/local/bin/rclone \
+    && cp "/tmp/rclone-dist/rclone-v${RCLONE_VERSION}-${RCLONE_ARCH}/rclone" /usr/local/bin/rclone \
     && chmod +x /usr/local/bin/rclone \
     && rm -rf /tmp/rclone.zip /tmp/rclone-dist \
     && rm -rf /var/lib/apt/lists/*
