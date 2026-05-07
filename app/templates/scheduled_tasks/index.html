@@ -36,7 +36,8 @@
                         {% if item.task[2] == 'tip_report' %}Tip Report
                         {% elif item.task[2] == 'daily_balance_report' %}Daily Balance Report
                         {% elif item.task[2] == 'employee_tip_report' %}Employee Tip Report
-                        {% elif item.task[2] == 'backup' %}Backup Report
+                        {% elif item.task[2] == 'backup' %}Local Backup
+                        {% elif item.task[2] == 'cloud_backup' %}Cloud Backup
                         {% else %}{{ item.task[2] }}
                         {% endif %}
                     </span>
@@ -145,7 +146,8 @@
                     <option value="tip_report">Tip Report</option>
                     <option value="daily_balance_report">Daily Balance Report</option>
                     <option value="employee_tip_report">Employee Tip Report</option>
-                    <option value="backup">Backup Report</option>
+                    <option value="backup">Local Backup</option>
+                    <option value="cloud_backup">Cloud Backup</option>
                 </select>
             </div>
 
@@ -157,6 +159,19 @@
                     <option value="{{ employee.id }}">{{ employee.name }}</option>
                     {% endfor %}
                 </select>
+            </div>
+
+            <div class="form-group" id="provider_selection" style="display: none;">
+                <label for="provider_id">Cloud Backup Provider</label>
+                <select id="provider_id" name="employee_id" class="form-control">
+                    <option value="">-- Select a provider --</option>
+                    {% for provider in backup_providers %}
+                    <option value="{{ provider.id }}">{{ provider.name }}</option>
+                    {% endfor %}
+                </select>
+                {% if not backup_providers %}
+                <small style="color:#856404;">No active providers found. <a href="/cloud-backup">Add one first.</a></small>
+                {% endif %}
             </div>
 
             <div class="form-group">
@@ -628,12 +643,20 @@ function toggleScheduleFields() {
 function toggleTaskTypeFields() {
     const taskType = document.getElementById('task_type').value;
     const employeeSelection = document.getElementById('employee_selection');
+    const providerSelection = document.getElementById('provider_selection');
     const dateRangeGroup = document.getElementById('date_range_group');
     const employeeId = document.getElementById('employee_id');
+    const providerId = document.getElementById('provider_id');
     const dateRangeType = document.getElementById('date_range_type');
     const emailRecipients = document.querySelector('.form-group:has(.email-selection)');
     const bypassOptIn = document.querySelector('.form-group:has(#bypass_opt_in)');
     const attachCsv = document.querySelector('.form-group:has(#attach_csv)');
+
+    // Reset all
+    employeeSelection.style.display = 'none';
+    employeeId.required = false;
+    providerSelection.style.display = 'none';
+    providerId.required = false;
 
     if (taskType === 'employee_tip_report') {
         employeeSelection.style.display = 'block';
@@ -644,16 +667,20 @@ function toggleTaskTypeFields() {
         if (bypassOptIn) bypassOptIn.style.display = 'block';
         if (attachCsv) attachCsv.style.display = 'block';
     } else if (taskType === 'backup') {
-        employeeSelection.style.display = 'none';
-        employeeId.required = false;
+        dateRangeGroup.style.display = 'none';
+        dateRangeType.required = false;
+        if (emailRecipients) emailRecipients.style.display = 'none';
+        if (bypassOptIn) bypassOptIn.style.display = 'none';
+        if (attachCsv) attachCsv.style.display = 'none';
+    } else if (taskType === 'cloud_backup') {
+        providerSelection.style.display = 'block';
+        providerId.required = true;
         dateRangeGroup.style.display = 'none';
         dateRangeType.required = false;
         if (emailRecipients) emailRecipients.style.display = 'none';
         if (bypassOptIn) bypassOptIn.style.display = 'none';
         if (attachCsv) attachCsv.style.display = 'none';
     } else {
-        employeeSelection.style.display = 'none';
-        employeeId.required = false;
         dateRangeGroup.style.display = 'block';
         dateRangeType.required = true;
         if (emailRecipients) emailRecipients.style.display = 'block';
@@ -791,7 +818,14 @@ async function editTask(taskId) {
         document.getElementById('task_type').value = task.task_type;
         document.getElementById('schedule_type').value = task.schedule_type;
         document.getElementById('date_range_type').value = task.date_range_type || '';
-        document.getElementById('employee_id').value = task.employee_id || '';
+
+        if (task.task_type === 'cloud_backup') {
+            document.getElementById('provider_id').value = task.employee_id || '';
+            document.getElementById('employee_id').value = '';
+        } else {
+            document.getElementById('employee_id').value = task.employee_id || '';
+            document.getElementById('provider_id').value = '';
+        }
 
         toggleTaskTypeFields();
 

@@ -16,10 +16,14 @@ def _validate_name(value: str, field: str) -> None:
 
 
 def _build_rclone_config(access_key: str, secret_key: str, endpoint: str, region: str | None) -> str:
+    if "backblazeb2.com" in endpoint:
+        provider = "Backblaze"
+    else:
+        provider = "Other"
     lines = [
         "[remote]",
         "type = s3",
-        "provider = Other",
+        f"provider = {provider}",
         f"access_key_id = {access_key}",
         f"secret_access_key = {secret_key}",
         f"endpoint = {endpoint}",
@@ -124,11 +128,12 @@ def run_backup(provider) -> dict:
 
         destination = f"remote:{provider.bucket_name}/{provider.path_prefix.rstrip('/')}"
         returncode, stdout, stderr = _run_rclone(
-            ["copy", BACKUP_SOURCE_DIR, destination, "--transfers", "4"],
+            ["copy", BACKUP_SOURCE_DIR, destination, "--transfers", "4", "--verbose"],
             config
         )
+        combined = (stdout + "\n" + stderr).strip()
         if returncode == 0:
-            return {"success": True, "message": "Backup completed successfully", "output": stdout.strip()}
-        return {"success": False, "message": stderr.strip() or "Backup failed", "output": stderr.strip()}
+            return {"success": True, "message": "Backup completed successfully", "output": combined}
+        return {"success": False, "message": stderr.strip() or "Backup failed", "output": combined}
     except Exception as e:
         return {"success": False, "message": str(e), "output": ""}

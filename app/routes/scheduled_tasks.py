@@ -7,7 +7,7 @@ from datetime import datetime
 from typing import Optional
 import json
 from app.database import get_db, SessionLocal
-from app.models import User, Employee
+from app.models import User, Employee, BackupProvider
 from app.auth.jwt_handler import get_current_user
 from app.scheduler import scheduler, get_next_run_times
 from app.services.scheduler_tasks import run_tip_report_task, run_daily_balance_report_task, run_employee_tip_report_task, run_backup_task, run_cloud_backup_task
@@ -127,6 +127,7 @@ async def scheduled_tasks_page(
     ).all()
 
     employees = db.query(Employee).order_by(Employee.name).all()
+    backup_providers = db.query(BackupProvider).filter(BackupProvider.is_active == True).order_by(BackupProvider.name).all()
 
     # Add employee name to tasks if applicable
     for item in tasks_with_executions:
@@ -144,7 +145,8 @@ async def scheduled_tasks_page(
             "current_user": current_user,
             "tasks": tasks_with_executions,
             "admin_users": admin_users,
-            "employees": employees
+            "employees": employees,
+            "backup_providers": backup_providers,
         }
     )
 
