@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, Request, Form, HTTPException
-from fastapi.responses import RedirectResponse, HTMLResponse, FileResponse
+from fastapi.responses import RedirectResponse, HTMLResponse, FileResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 from sqlalchemy import text
@@ -700,87 +700,7 @@ async def finalize_daily_balance_route(
         generate_daily_balance_csv(daily_balance, daily_balance.employee_entries, current_user=current_user, source="user")
         return RedirectResponse(url=f"/daily-balance?selected_date={target_date}", status_code=302)
     except HTTPException as e:
-        all_schedules = db.query(EmployeePositionSchedule).join(Employee).filter(Employee.is_active == True).all()
-        all_employee_position_combos = []
-        for schedule in all_schedules:
-            all_employee_position_combos.append(serialize_employee_position_combo(schedule.employee, schedule.position, db))
-
-        all_employee_position_combos = sorted(all_employee_position_combos, key=lambda combo: (combo["position_name_sort_key"], combo["display_name_sort_key"]))
-
-        scheduled_combos = []
-        for schedule in all_schedules:
-            if is_employee_scheduled_for_date(schedule, date_obj, day_of_week):
-                scheduled_combos.append(serialize_employee_position_combo(schedule.employee, schedule.position, db))
-
-        scheduled_combos = sorted(scheduled_combos, key=lambda combo: (combo["position_name_sort_key"], combo["display_name_sort_key"]))
-
-        daily_balance = db.query(DailyBalance).filter(DailyBalance.date == date_obj).first()
-        employee_entries = {}
-        if daily_balance:
-            for entry in daily_balance.employee_entries:
-                combo_key = f"{entry.employee_id}-{entry.position_id}"
-                employee_entries[combo_key] = entry
-
-        working_combos = []
-        if daily_balance:
-            for entry in daily_balance.employee_entries:
-                # If employee and position still exist, use live data
-                if entry.employee and entry.position:
-                    # Check if employee is inactive
-                    if not entry.employee.is_active:
-                        working_combos.append(serialize_employee_position_combo(entry.employee, entry.position, db, status_indicator="(Inactive)"))
-                    else:
-                        working_combos.append(serialize_employee_position_combo(entry.employee, entry.position, db))
-                else:
-                    # Employee or position was deleted - use snapshot data
-                    working_combos.append(serialize_employee_position_from_snapshot(entry, db))
-        else:
-            working_combos = scheduled_combos
-
-        working_combos = sorted(working_combos, key=lambda combo: (combo["position_name_sort_key"], combo["display_name_sort_key"]))
-
-        working_combo_ids = [combo["combo_id"] for combo in working_combos]
-
-        templates_list = db.query(FinancialLineItemTemplate).order_by(
-            FinancialLineItemTemplate.category,
-            FinancialLineItemTemplate.display_order
-        ).all()
-
-        financial_line_items = {}
-        if daily_balance:
-            for item in daily_balance.financial_line_items:
-                financial_line_items[f"{item.category}_{item.template_id or item.id}"] = item
-
-        previous_ending_till = get_previous_ending_till(db, date_obj)
-
-        existing_checks = []
-        existing_efts = []
-        if daily_balance:
-            existing_checks = daily_balance.checks
-            existing_efts = daily_balance.efts
-
-        return templates.TemplateResponse(
-            "daily_balance/form.html",
-            {
-                "request": request,
-                "current_user": current_user,
-                "target_date": date_obj,
-                "day_of_week": day_of_week,
-                "daily_balance": daily_balance,
-                "all_employees": all_employee_position_combos,
-                "working_employees": working_combos,
-                "working_employee_ids": working_combo_ids,
-                "employee_entries": employee_entries,
-                "scheduled_employees": scheduled_combos,
-                "edit_mode": False,
-                "financial_templates": templates_list,
-                "financial_line_items": financial_line_items,
-                "previous_ending_till": previous_ending_till,
-                "existing_checks": existing_checks,
-                "existing_efts": existing_efts,
-                "error": e.detail
-            }
-        )
+        return JSONResponse(status_code=400, content={"success": False, "detail": e.detail})
 
 @router.get("/daily-balance/export")
 async def export_daily_balance(

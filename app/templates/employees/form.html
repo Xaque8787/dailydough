@@ -326,19 +326,9 @@ function validateAndSerialize() {
         if (scheduleType === 'recurring') {
             const checkboxes = row.querySelectorAll('.day-checkbox:checked');
             selectedDays = Array.from(checkboxes).map(cb => cb.value);
-
-            if (selectedDays.length === 0) {
-                alert('Please select at least one day for recurring schedules, or switch to specific dates.');
-                return false;
-            }
         } else if (scheduleType === 'calendar') {
             const dateChips = row.querySelectorAll('.date-chip');
             specificDates = Array.from(dateChips).map(chip => chip.dataset.date);
-
-            if (specificDates.length === 0) {
-                alert('Please add at least one specific date, or switch to recurring schedule.');
-                return false;
-            }
         }
 
         schedulesData.push({
